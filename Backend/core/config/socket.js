@@ -1,53 +1,42 @@
-import { Server, Socket } from "socket.io";
-import { env } from "./env.js";
-import { verifyAccessToken } from '../utils/jwt.js';
-import { logger } from "../logger/logger.js"; 
+import { verifyAccessToken } from "../utils/jwt.js";
+import { authRepository } from "../../modules/auth/auth.repository.js";
+import logger from "../logger/logger.js";
 
+export const configureSocketAuth = (io) => {
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token;
 
-let io = null;
+      if (!token) {
+        return next(new Error("Authentication required: no token provided"));
+      }
 
-export const initSocket = (httpServer) => {
-    io = new Server(httpServer, {
-        cors: {
-            origin: env.CLIENT_URL,
-            credentials: true,
-        },
+      const decoded = verifyAccessToken(token);
+      const user = await authRepository.findById(decoded.userId);
 
-        pingTimeout: 60000, // 60 seconds
-        pingInterval: 25000, // 25 seconds
-    });
+      if (!user) {
+        return next(new Error("Authentication failed: user not found"));
+      }
 
+      socket.user = {
+        _id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl,
+      };
 
-    io.use((socket, next) => {
-        try{
-            const token = socket.handshake.auth?.token;
+      logger.info("Socket authenticated", {
+        socketId: socket.id,
+        userId: socket.user._id,
+      });
 
-            if(!token){
-                logger.warn("Socket connection rejected: No access token provided.");
-                return next(new Error("No access token provided. Please log in."));
-            }
-
-            const payload = verifyAccessToken(token);
-            socket.user = {
-                _id: payload.sub,
-                fullName: payload.fullName,
-                profileImageUrl: payload.profileImageUrl,
-            };
-            next();
-        } catch (error) {
-            logger.warn("Socket connection rejected: Invalid access token.");
-            return next(new Error("Invalid access token. Please log in."));
-        }
-    });
-
-    logger.info("Socket.io initialized");
-    return io;
-
-}
-
-export const getIO = () => {
-    if (!io) {
-        throw new Error("Socket.io not initialized. Call initSocket() first.");
+      next();
+    } catch (error) {
+      logger.warn("Socket authentication failed", {
+        socketId: socket.id,
+        error: error.message,
+      });
+      next(new Error("Authentication failed: invalid token"));
     }
-    return io;
+  });
 };

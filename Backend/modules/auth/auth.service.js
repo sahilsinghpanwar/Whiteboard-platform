@@ -54,11 +54,13 @@ const loginWithEmailPassword = async ({ email, password }) => {
 
 const loginOrRegisterWithGoogle = async ({ googleId, email, fullName, profileImageUrl }) => {
 
+   // Case 1: Returning Google user
   const existingGoogleUser = await authRepository.findByGoogleId(googleId);
   if (existingGoogleUser) {
     return buildAuthPayload(existingGoogleUser);
   }
 
+   // Case 2: User registered with email/password first, now linking Google
   const existingLocalUser = await authRepository.findByEmail(email);
   if (existingLocalUser) {
     const updatedUser = await authRepository.updateById(existingLocalUser._id, {
@@ -70,6 +72,7 @@ const loginOrRegisterWithGoogle = async ({ googleId, email, fullName, profileIma
     return buildAuthPayload(updatedUser);
   }
 
+  // Case 3: Brand new user via Google
   const newUser = await authRepository.createUser({
     fullName,
     email,
