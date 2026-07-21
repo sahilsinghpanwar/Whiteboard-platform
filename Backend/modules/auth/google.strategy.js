@@ -1,15 +1,15 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { env } from "./env.js";
-import { authService } from "../../modules/auth/auth.service.js";
-import logger from "../logger/logger.js";
+import { env } from "../../core/config/env.js";
+import { authService } from "./auth.service.js";
+import logger from "../../core/logger/logger.js";
 
 passport.use(
   new GoogleStrategy(
     {
-      clientID: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      callbackURL: env.GOOGLE_CALLBACK_URL,
+      clientID: env.GOOGLE_CLIENT_ID || "placeholder_client_id",
+      clientSecret: env.GOOGLE_CLIENT_SECRET || "placeholder_client_secret",
+      callbackURL: env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/v1/auth/google/callback",
 
       scope: ["profile", "email"],
     },

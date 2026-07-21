@@ -7,15 +7,16 @@ import { asyncHandler }  from '../../core/utils/asyncHandler.js';
 const router = Router();
 router.use(authenticate);
 
-
+// Board Asset Uploads (supports /board-asset, /board-image, /board-image/:boardId)
 router.post(
-  '/board-asset',
+  ['/board-asset', '/board-image', '/board-image/:boardId'],
   uploadMiddleware.single('image'),
   asyncHandler(controller.uploadBoardAsset)
 );
 
+// User Profile Avatar Uploads (supports /avatar, /profile-image)
 router.post(
-  '/avatar',
+  ['/avatar', '/profile-image'],
   uploadMiddleware.single('avatar'),
   asyncHandler(controller.uploadAvatar)
 );

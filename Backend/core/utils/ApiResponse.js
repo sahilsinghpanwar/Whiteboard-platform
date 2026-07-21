@@ -1,9 +1,15 @@
 class ApiResponse {
-  constructor(statusCode, message = "Success", data = null) {
+  constructor(statusCode, param2 = "Success", param3 = null) {
     this.success = statusCode < 400;
     this.statusCode = statusCode;
-    this.message = message;
-    this.data = data;
+
+    if (typeof param2 === "string" && (param3 === null || typeof param3 !== "string")) {
+      this.message = param2;
+      this.data = param3;
+    } else {
+      this.data = param2;
+      this.message = typeof param3 === "string" ? param3 : "Success";
+    }
   }
 
   send(res) {
@@ -14,7 +20,6 @@ class ApiResponse {
       data: this.data,
     });
   }
-
 
   static ok(res, message = "Success", data = null) {
     return new ApiResponse(200, message, data).send(res);
@@ -29,4 +34,5 @@ class ApiResponse {
   }
 }
 
+export { ApiResponse };
 export default ApiResponse;

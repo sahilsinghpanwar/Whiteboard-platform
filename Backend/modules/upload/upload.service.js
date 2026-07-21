@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
+import { cloudinary, initCloudinary } from '../../core/config/cloudinary.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 
 //  Multer Configuration 
@@ -30,6 +30,7 @@ export const uploadMiddleware = multer({
 
 const uploadToCloudinary = (buffer, { folder, publicId } = {}) =>
   new Promise((resolve, reject) => {
+    initCloudinary();
     const uploadOptions = {
       folder: `collabboard/${folder ?? 'board-assets'}`,
       resource_type: 'image',

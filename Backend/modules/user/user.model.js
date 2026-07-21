@@ -52,6 +52,12 @@ const userSchema = new mongoose.Schema(
       default: 'user',
     },
 
+    authProvider: {
+      type:    String,
+      enum:    ['local', 'google'],
+      default: 'local',
+    },
+
     isEmailVerified: {
       type:    Boolean,
       default: false,
@@ -89,12 +95,11 @@ userSchema.index({ fullName: 'text' });
 
 
 //  Pre-save Hook 
-// Hash password only when it has been set or changed.
-// Google OAuth users skip this — they never set a password.
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password') || !this.password) return next();
-  this.password = await bcrypt.hash(this.password, 12); // cost factor 12
-  next();
+// Hash password only when it has been set or changed and not already hashed.
+userSchema.pre('save', async function () {
+  if (!this.isModified('password') || !this.password) return;
+  if (/^\$2[aby]\$\d{2}\$/.test(this.password)) return;
+  this.password = await bcrypt.hash(this.password, 12);
 });
 
 //  Instance Methods 

@@ -1,0 +1,5 @@
+export { default as Canvas } from './components/Canvas.jsx'
+export { default as BoardHeader } from './components/BoardHeader.jsx'
+export { default as MiniMap } from './components/MiniMap.jsx'
+export { default as ContextMenu } from './components/ContextMenu.jsx'
+export { default as SidePanel } from './components/SidePanel.jsx'

@@ -3,11 +3,14 @@ import { hashPassword, comparePassword } from "../../core/utils/password.js";
 import { signAccessToken, signRefreshToken } from "../../core/utils/jwt.js";
 import ApiError from "../../core/utils/ApiError.js";
 
-const buildAuthPayload = (user) => ({
-  accessToken: signAccessToken(user._id.toString()),
-  refreshToken: signRefreshToken(user._id.toString()),
-  user,
-});
+const buildAuthPayload = (user) => {
+  const userJson = user?.toPublicJSON ? user.toPublicJSON() : user;
+  return {
+    accessToken: signAccessToken(user._id.toString()),
+    refreshToken: signRefreshToken(user._id.toString()),
+    user: userJson,
+  };
+};
 
 const registerWithEmailPassword = async ({ fullName, email, password, profileImageUrl }) => {
   const existingUser = await authRepository.findByEmail(email);
@@ -37,9 +40,11 @@ const loginWithEmailPassword = async ({ email, password }) => {
     throw ApiError.unauthorized("Invalid email or password");
   }
 
-  if (user.authProvider !== "local") {
+  const provider = user.authProvider || (user.googleId ? "google" : "local");
+
+  if (provider !== "local") {
     throw ApiError.badRequest(
-      `This account uses ${user.authProvider} sign-in. Please use that method.`
+      `This account uses ${provider} sign-in. Please use that method.`
     );
   }
 

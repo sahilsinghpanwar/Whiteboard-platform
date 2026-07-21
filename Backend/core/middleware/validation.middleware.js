@@ -1,7 +1,11 @@
 import ApiError from "../utils/ApiError.js";
 
 const validate = (schema) => (req, res, next) => {
-  const result = schema.safeParse(req.body);
+  // Support both schema passed directly or schema object like { body: schema }
+  const schemaToParse = schema.body || schema;
+  const dataToParse = schema.body ? req.body : req.body;
+
+  const result = schemaToParse.safeParse(dataToParse);
 
   if (!result.success) {
     const errors = result.error.issues.map(
@@ -13,4 +17,5 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
+export { validate };
 export default validate;

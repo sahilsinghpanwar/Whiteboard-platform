@@ -7,6 +7,8 @@ import validate from "../../core/middleware/validation.middleware.js";
 import protect from "../../core/middleware/auth.middleware.js";
 import asyncHandler from "../../core/utils/asyncHandler.js";
 
+import { env } from "../../core/config/env.js";
+
 const router = express.Router();
 
 router.post(
@@ -46,7 +48,7 @@ router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: `${process.env.CLIENT_URL}/auth/login?error=google_oauth_failed`,
+    failureRedirect: `${env.CLIENT_URL}/login?error=google_oauth_failed`,
   }),
   asyncHandler(authController.googleCallback)
 );

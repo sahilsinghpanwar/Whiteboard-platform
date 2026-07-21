@@ -6,11 +6,12 @@ import { env } from "../../core/config/env.js";
 const sendAuthResponse = (res, statusCode, message, authPayload) => {
   const { accessToken, refreshToken, user } = authPayload;
 
- 
   res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
 
+  const userJson = user?.toPublicJSON ? user.toPublicJSON() : user;
+
   return res.status(statusCode).json(
-    new ApiResponse(statusCode, message, { accessToken, user })
+    new ApiResponse(statusCode, message, { accessToken, refreshToken, user: userJson })
   );
 };
 

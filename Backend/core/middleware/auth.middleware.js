@@ -3,7 +3,6 @@ import { authRepository } from "../../modules/auth/auth.repository.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-
 const protect = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
@@ -24,4 +23,6 @@ const protect = asyncHandler(async (req, res, next) => {
   next();
 });
 
+export const authenticate = protect;
+export { protect };
 export default protect;

@@ -64,4 +64,5 @@ const errorMiddleware = (err, req, res, next) => {
   });
 };
 
+export { errorMiddleware };
 export default errorMiddleware;

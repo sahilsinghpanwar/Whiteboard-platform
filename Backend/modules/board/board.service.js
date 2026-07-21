@@ -109,7 +109,7 @@ export const inviteMember = async (boardId, requesterId, { email, role }) => {
   // Find the user being invited
   const invitee = await userRepo.findByEmail(email);
   if (!invitee) {
-    throw ApiError.notFound(`No user found with email: ${email}`);
+    throw ApiError.notFound(`User with email '${email}' is not registered yet. Please have them sign up first.`);
   }
 
   const inviteeIdStr = invitee._id.toString();

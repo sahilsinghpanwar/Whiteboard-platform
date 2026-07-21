@@ -33,7 +33,8 @@ class ApiError extends Error {
   }
 
   static notFound(resource = "Resource") {
-    return new ApiError(404, `${resource} not found`);
+    const isFullMessage = resource.toLowerCase().includes("not found") || resource.startsWith("No ");
+    return new ApiError(404, isFullMessage ? resource : `${resource} not found`);
   }
 
   static conflict(message = "Conflict") {
@@ -47,4 +48,5 @@ class ApiError extends Error {
   }
 }
 
+export { ApiError };
 export default ApiError;

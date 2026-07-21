@@ -15,27 +15,30 @@ import {
 
 
 const callGemini = async (prompt, tier = 'flash') => {
-  const modelName = tier === 'pro'
-    ? 'gemini-1.5-pro'
-    : 'gemini-1.5-flash';
+  const modelNames = tier === 'pro'
+    ? ['gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-1.5-flash']
+    : ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
-  const model = getGeminiModel(modelName);
+  let lastError = null;
 
-  try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    if (!text) throw new Error('Empty response from Gemini');
-    return text;
-  } catch (err) {
-    // Gemini quota / network errors
-    if (err.message?.includes('RESOURCE_EXHAUSTED')) {
-      throw ApiError.tooManyRequests('AI quota exceeded. Please try again in a moment.');
+  for (const modelName of modelNames) {
+    try {
+      const model = getGeminiModel(modelName);
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      if (text) return text;
+    } catch (err) {
+      lastError = err;
+      if (err.message?.includes('RESOURCE_EXHAUSTED')) {
+        throw ApiError.tooManyRequests('AI quota exceeded. Please try again in a moment.');
+      }
+      if (err.message?.includes('SAFETY')) {
+        throw ApiError.badRequest('Request was blocked by safety filters. Please rephrase.');
+      }
     }
-    if (err.message?.includes('SAFETY')) {
-      throw ApiError.badRequest('Request was blocked by safety filters. Please rephrase.');
-    }
-    throw ApiError.internal(`AI service error: ${err.message}`);
   }
+
+  throw ApiError.internal(`AI service error: ${lastError?.message || 'Failed to generate AI response'}`);
 };
 
 
