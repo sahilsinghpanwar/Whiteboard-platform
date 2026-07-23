@@ -51,6 +51,20 @@ router
   );
 
 router
+  .route('/:boardId/members/accept')
+  .post(
+    validate({ params: boardIdParamSchema }),
+    asyncHandler(controller.acceptInvitation)
+  );
+
+router
+  .route('/:boardId/members/decline')
+  .post(
+    validate({ params: boardIdParamSchema }),
+    asyncHandler(controller.declineInvitation)
+  );
+
+router
   .route('/:boardId/members/:memberId')
   .patch(
     validate({ params: memberIdParamSchema, body: updateMemberRoleSchema }),

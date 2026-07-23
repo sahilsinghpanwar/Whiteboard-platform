@@ -50,6 +50,11 @@ export const inviteMember = async (req, res) => {
     req.user._id,
     req.body
   );
+  const io = req.app.get('io');
+  if (io) {
+    io.of('/collaboration').to(`board:${board._id}`).emit('board:updated', { board });
+  }
+
   res.status(200).json(
     new ApiResponse(200, board, 'Member invited successfully')
   );
@@ -62,6 +67,11 @@ export const updateMemberRole = async (req, res) => {
     req.params.memberId,
     req.body.role
   );
+  const io = req.app.get('io');
+  if (io) {
+    io.of('/collaboration').to(`board:${board._id}`).emit('board:updated', { board });
+  }
+
   res.status(200).json(
     new ApiResponse(200, board, 'Member role updated successfully')
   );
@@ -73,8 +83,47 @@ export const removeMember = async (req, res) => {
     req.user._id,
     req.params.memberId
   );
+  const io = req.app.get('io');
+  if (io) {
+    io.of('/collaboration').to(`board:${board._id}`).emit('board:updated', { board });
+  }
+
   res.status(200).json(
     new ApiResponse(200, board, 'Member removed successfully')
+  );
+};
+
+export const acceptInvitation = async (req, res) => {
+  const board = await boardService.acceptInvitation(
+    req.params.boardId,
+    req.user._id
+  );
+  const io = req.app.get('io');
+  if (io) {
+    io.of('/collaboration').to(`board:${board._id}`).emit('board:updated', { board });
+  }
+
+  res.status(200).json(
+    new ApiResponse(200, board, 'Invitation accepted successfully')
+  );
+};
+
+export const declineInvitation = async (req, res) => {
+  const response = await boardService.declineInvitation(
+    req.params.boardId,
+    req.user._id
+  );
+  const io = req.app.get('io');
+  if (io) {
+    // Decline just returns a message, not a board, so we shouldn't emit the message as a board.
+    // However, if we wanted to update the board state for others, we'd need to fetch the updated board here.
+    // For now, let's fetch it and emit it.
+    const updatedBoard = await boardService.getBoardById(req.params.boardId, req.user._id);
+    io.of('/collaboration').to(`board:${updatedBoard._id}`).emit('board:updated', { board: updatedBoard });
+  }
+
+  res.status(200).json(
+    new ApiResponse(200, response, 'Invitation declined successfully')
   );
 };
 

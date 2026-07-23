@@ -130,7 +130,7 @@ body {
   background: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.5;
-  overflow: hidden;
+  /* overflow is controlled per-page to allow landing page to scroll */
 }
 
 /* Scrollbar */

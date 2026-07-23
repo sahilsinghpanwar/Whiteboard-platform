@@ -13,10 +13,8 @@ export const registerChatHandlers = (io) => {
       if (!boardId) return socket.emit('error', { message: 'boardId is required' });
 
       try {
-        // Validate board access before joining the room
-        const { default: boardModel } = await import('../board/board.model.js');
-        const board = await boardModel.findById(boardId).lean();
-        if (!board) return socket.emit('error', { message: 'Board not found' });
+        const { boardService } = await import('../board/index.js');
+        await boardService.getBoardById(boardId, user._id);
 
         await socket.join(`board:${boardId}`);
         socket.emit('chat:joined', { boardId });

@@ -1,119 +1,171 @@
 import React, { useState, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useBoardStore, CANVAS_TOOLS } from "../store/Boardstore.js";
 import { uploadApi } from "@/features/upload/api/upload.api.js";
 import {
-  MousePointer,
-  Hand,
-  Pencil,
-  Eraser,
-  Square,
-  Circle,
-  ArrowUpRight,
-  Minus,
-  StickyNote,
-  Type,
-  Image as ImageIcon,
+  MousePointer, Hand, Pencil, Eraser, Square, Circle,
+  ArrowUpRight, Minus, StickyNote, Type, Image as ImageIcon,
   Sparkles,
-  Undo2,
-  Redo2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+/* ── Color constants ─────────────────────────────────────────── */
 const STICKY_COLORS = [
   { name: "Yellow", bg: "#fef08a", text: "#1e293b" },
-  { name: "Blue", bg: "#bae6fd", text: "#0f172a" },
-  { name: "Green", bg: "#bbf7d0", text: "#064e3b" },
-  { name: "Pink", bg: "#fbcfe8", text: "#831843" },
+  { name: "Blue",   bg: "#bae6fd", text: "#0f172a" },
+  { name: "Green",  bg: "#bbf7d0", text: "#064e3b" },
+  { name: "Pink",   bg: "#fbcfe8", text: "#831843" },
   { name: "Purple", bg: "#e9d5ff", text: "#581c87" },
-  { name: "Dark", bg: "#334155", text: "#f8fafc" },
+  { name: "Dark",   bg: "#334155", text: "#f8fafc" },
 ];
 
 const STROKE_COLORS = [
-  "#ffffff",
-  "#94a3b8",
-  "#f43f5e",
-  "#3b82f6",
-  "#10b981",
-  "#eab308",
-  "#a855f7",
+  "#0F0F1A", "#6D5EF7", "#EF4444", "#3B82F6",
+  "#10B981", "#F59E0B", "#EC4899",
 ];
 
+/* ── Tool button ─────────────────────────────────────────────── */
+function ToolBtn({ active, onClick, title: tip, children, className = "" }) {
+  return (
+    <button
+      onClick={onClick}
+      title={tip}
+      className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-150 relative group ${
+        active
+          ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/30"
+          : `text-zinc-400 hover:text-white hover:bg-white/10 ${className}`
+      }`}
+    >
+      {children}
+      {/* Tooltip */}
+      <span className="pointer-events-none absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#0F0F1A] text-white text-[11px] font-medium px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-lg z-50">
+        {tip}
+      </span>
+    </button>
+  );
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+const Divider = () => <div className="w-6 h-px bg-white/10 my-0.5" />;
+
+/* ── Board Toolbar ───────────────────────────────────────────── */
 export function BoardToolbar({
-  strokeColor,
-  setStrokeColor,
-  strokeWidth,
-  setStrokeWidth,
-  stickyBg,
-  setStickyBg,
-  emitElementUpdate,
+  strokeColor, setStrokeColor,
+  strokeWidth, setStrokeWidth,
+  stickyBg, setStickyBg,
+  emitElementUpdate, emitCanvasSave,
 }) {
   const { boardId } = useParams();
   const {
-    activeTool,
-    setActiveTool,
-    activeShape,
-    setActiveShape,
-    toggleAI,
-    showAI,
-    undo,
-    redo,
-    historyIndex,
-    history,
-    upsertElement,
+    activeTool, setActiveTool,
+    activeShape, setActiveShape,
+    toggleAI, showAI,
+    upsertElement, selectedElementIds, elements,
+    role,
   } = useBoardStore();
+
+  const canEdit = role === "owner" || role === "editor";
 
   const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
+  const handleStrokeColorChange = (color) => {
+    if (!canEdit) return;
+    setStrokeColor(color);
+    if (selectedElementIds.length > 0) {
+      selectedElementIds.forEach((id) => {
+        const el = elements.find((e) => e.id === id);
+        if (el) {
+          const updated = { ...el, data: { ...el.data, strokeColor: color } };
+          upsertElement(updated);
+          emitElementUpdate?.(updated);
+        }
+      });
+    }
+  };
+
+  const handleStickyBgChange = (bg) => {
+    if (!canEdit) return;
+    setStickyBg(bg);
+    if (selectedElementIds.length > 0) {
+      selectedElementIds.forEach((id) => {
+        const el = elements.find((e) => e.id === id);
+        if (el && el.type === "sticky") {
+          const updated = { ...el, data: { ...el.data, bgColor: bg } };
+          upsertElement(updated);
+          emitElementUpdate?.(updated);
+        }
+      });
+    }
+  };
+
+  const handleStrokeWidthChange = (width) => {
+    if (!canEdit) return;
+    setStrokeWidth(width);
+    if (selectedElementIds.length > 0) {
+      selectedElementIds.forEach((id) => {
+        const el = elements.find((e) => e.id === id);
+        if (el) {
+          const updated = { ...el, data: { ...el.data, strokeWidth: width } };
+          upsertElement(updated);
+          emitElementUpdate?.(updated);
+        }
+      });
+    }
+  };
+
   const handleToolSelect = (tool) => {
+    if (!canEdit && tool !== CANVAS_TOOLS.SELECT && tool !== CANVAS_TOOLS.HAND) {
+      toast.error("You have view-only access to this board");
+      return;
+    }
     setActiveTool(tool);
     setShowShapeMenu(false);
     setShowColorMenu(false);
   };
 
   const handleShapeSelect = (shape) => {
+    if (!canEdit) {
+      toast.error("You have view-only access to this board");
+      return;
+    }
     setActiveShape(shape);
     setActiveTool(CANVAS_TOOLS.SHAPE);
     setShowShapeMenu(false);
   };
 
   const handleImageUpload = async (e) => {
+    if (!canEdit) {
+      toast.error("You have view-only access to this board");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsUploading(true);
     try {
-      // 1. Try uploading to Cloudinary via uploadApi
       let imageUrl = "";
       try {
         const res = await uploadApi.boardImage(boardId, file);
         imageUrl = res.data.data?.url || res.data?.url;
       } catch {
-        // Fallback to local DataURL if server upload is unconfigured
         imageUrl = await new Promise((resolve) => {
           const reader = new FileReader();
-          reader.onload = (event) => resolve(event.target.result);
+          reader.onload = (ev) => resolve(ev.target.result);
           reader.readAsDataURL(file);
         });
       }
-
       const imgElement = {
         id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        type: "image",
-        x: 150,
-        y: 150,
-        width: 260,
-        height: 200,
+        type: "image", x: 150, y: 150, width: 260, height: 200,
         data: { url: imageUrl },
       };
-
       upsertElement(imgElement);
       emitElementUpdate?.(imgElement);
       toast.success("Image placed on whiteboard");
-    } catch (err) {
+    } catch {
       toast.error("Failed to upload image");
     } finally {
       setIsUploading(false);
@@ -121,216 +173,172 @@ export function BoardToolbar({
     }
   };
 
+  /* Shape icon helper */
+  const shapeIcon = {
+    rect: <Square className="w-4 h-4" />,
+    circle: <Circle className="w-4 h-4" />,
+    arrow: <ArrowUpRight className="w-4 h-4" />,
+    line: <Minus className="w-4 h-4" />,
+  };
+
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#1e1e24]/90 backdrop-blur-md border border-white/10 shadow-2xl transition-all font-sans select-none">
-      {/* Undo & Redo Controls */}
-      <button
-        onClick={undo}
-        disabled={historyIndex <= 0}
-        className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30"
-        title="Undo (Ctrl+Z)"
-      >
-        <Undo2 className="w-4 h-4" />
-      </button>
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1 p-2 rounded-2xl bg-[#1a1a22]/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30 select-none font-sans"
+    >
+      {!canEdit && (
+        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mb-1">
+          View Only
+        </span>
+      )}
 
-      <button
-        onClick={redo}
-        disabled={historyIndex >= history.length - 1}
-        className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30"
-        title="Redo (Ctrl+Y)"
-      >
-        <Redo2 className="w-4 h-4" />
-      </button>
+      {/* Select */}
+      <ToolBtn active={activeTool === CANVAS_TOOLS.SELECT} onClick={() => handleToolSelect(CANVAS_TOOLS.SELECT)} title="Select (V)">
+        <MousePointer className="w-4 h-4" />
+      </ToolBtn>
 
-      <div className="w-[1px] h-6 bg-white/10 mx-1" />
+      {/* Hand (Pan) */}
+      <ToolBtn active={activeTool === CANVAS_TOOLS.HAND} onClick={() => handleToolSelect(CANVAS_TOOLS.HAND)} title="Pan Canvas (H)">
+        <Hand className="w-4 h-4" />
+      </ToolBtn>
 
-      {/* Select Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.SELECT)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.SELECT
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Select (V)"
-      >
-        <MousePointer className="w-5 h-5" />
-      </button>
+      {canEdit && (
+        <>
+          <Divider />
 
-      {/* Hand / Pan Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.HAND)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.HAND
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Pan Canvas (H)"
-      >
-        <Hand className="w-5 h-5" />
-      </button>
+          {/* Draw */}
+          <ToolBtn active={activeTool === CANVAS_TOOLS.DRAW} onClick={() => handleToolSelect(CANVAS_TOOLS.DRAW)} title="Freehand Draw (P)">
+            <Pencil className="w-4 h-4" />
+          </ToolBtn>
 
-      <div className="w-[1px] h-6 bg-white/10 mx-1" />
-
-      {/* Draw / Pen Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.DRAW)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.DRAW
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Freehand Draw (P)"
-      >
-        <Pencil className="w-5 h-5" />
-      </button>
-
-      {/* Shapes Dropdown */}
-      <div className="relative">
-        <button
-          onClick={() => setShowShapeMenu(!showShapeMenu)}
-          className={`p-2.5 rounded-xl transition-all flex items-center gap-1 ${
-            activeTool === CANVAS_TOOLS.SHAPE
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-              : "text-zinc-400 hover:text-white hover:bg-white/5"
-          }`}
-          title="Shapes"
-        >
-          {activeShape === "rect" && <Square className="w-5 h-5" />}
-          {activeShape === "circle" && <Circle className="w-5 h-5" />}
-          {activeShape === "arrow" && <ArrowUpRight className="w-5 h-5" />}
-          {activeShape === "line" && <Minus className="w-5 h-5" />}
-        </button>
-
-        {showShapeMenu && (
-          <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 p-1.5 rounded-xl bg-[#18181c] border border-white/10 shadow-2xl flex items-center gap-1 animate-in fade-in zoom-in-95">
-            <button
-              onClick={() => handleShapeSelect("rect")}
-              className={`p-2 rounded-lg ${activeShape === "rect" ? "bg-indigo-600 text-white" : "text-zinc-300 hover:bg-white/10"}`}
-              title="Rectangle"
+          {/* Shapes dropdown */}
+          <div className="relative">
+            <ToolBtn
+              active={activeTool === CANVAS_TOOLS.SHAPE}
+              onClick={() => setShowShapeMenu((v) => !v)}
+              title="Shapes"
             >
-              <Square className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleShapeSelect("circle")}
-              className={`p-2 rounded-lg ${activeShape === "circle" ? "bg-indigo-600 text-white" : "text-zinc-300 hover:bg-white/10"}`}
-              title="Circle"
-            >
-              <Circle className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleShapeSelect("arrow")}
-              className={`p-2 rounded-lg ${activeShape === "arrow" ? "bg-indigo-600 text-white" : "text-zinc-300 hover:bg-white/10"}`}
-              title="Arrow"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleShapeSelect("line")}
-              className={`p-2 rounded-lg ${activeShape === "line" ? "bg-indigo-600 text-white" : "text-zinc-300 hover:bg-white/10"}`}
-              title="Line"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
+              {shapeIcon[activeShape] || <Square className="w-4 h-4" />}
+            </ToolBtn>
+
+            {showShapeMenu && (
+              <motion.div
+                initial={{ opacity: 0, x: 8, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.13 }}
+                className="absolute left-full ml-3 top-0 p-1.5 rounded-xl bg-[#1a1a22] border border-white/10 shadow-2xl flex flex-col gap-1"
+              >
+                {[
+                  { key: "rect",   icon: <Square className="w-4 h-4" />,       label: "Rectangle" },
+                  { key: "circle", icon: <Circle className="w-4 h-4" />,       label: "Circle" },
+                  { key: "arrow",  icon: <ArrowUpRight className="w-4 h-4" />, label: "Arrow" },
+                  { key: "line",   icon: <Minus className="w-4 h-4" />,        label: "Line" },
+                ].map(({ key, icon, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => handleShapeSelect(key)}
+                    title={label}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                      activeShape === key ? "bg-[#6D5EF7] text-white" : "text-zinc-400 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </motion.div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Sticky Note Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.STICKY)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.STICKY
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Sticky Note (S)"
-      >
-        <StickyNote className="w-5 h-5" />
-      </button>
+          {/* Sticky note */}
+          <ToolBtn active={activeTool === CANVAS_TOOLS.STICKY} onClick={() => handleToolSelect(CANVAS_TOOLS.STICKY)} title="Sticky Note (S)">
+            <StickyNote className="w-4 h-4" />
+          </ToolBtn>
 
-      {/* Text Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.TEXT)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.TEXT
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Text (T)"
-      >
-        <Type className="w-5 h-5" />
-      </button>
+          {/* Text */}
+          <ToolBtn active={activeTool === CANVAS_TOOLS.TEXT} onClick={() => handleToolSelect(CANVAS_TOOLS.TEXT)} title="Text Box (T)">
+            <Type className="w-4 h-4" />
+          </ToolBtn>
 
-      {/* Image Upload Button */}
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isUploading}
-        className="p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
-        title="Upload Image to Canvas"
-      >
-        <ImageIcon className="w-5 h-5" />
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
+          {/* Image upload */}
+          <ToolBtn
+            active={false}
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload Image (I)"
+            className={isUploading ? "opacity-50 pointer-events-none" : ""}
+          >
+            <ImageIcon className="w-4 h-4" />
+          </ToolBtn>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
 
-      {/* Eraser Tool */}
-      <button
-        onClick={() => handleToolSelect(CANVAS_TOOLS.ERASER)}
-        className={`p-2.5 rounded-xl transition-all ${
-          activeTool === CANVAS_TOOLS.ERASER
-            ? "bg-red-600 text-white shadow-md shadow-red-600/30"
-            : "text-zinc-400 hover:text-white hover:bg-white/5"
-        }`}
-        title="Eraser (E)"
-      >
-        <Eraser className="w-5 h-5" />
-      </button>
+          {/* Eraser */}
+          <ToolBtn
+            active={activeTool === CANVAS_TOOLS.ERASER}
+            onClick={() => handleToolSelect(CANVAS_TOOLS.ERASER)}
+            title="Eraser (E)"
+            className={activeTool === CANVAS_TOOLS.ERASER ? "!bg-rose-500 !text-white !shadow-rose-500/30" : ""}
+          >
+            <Eraser className="w-4 h-4" />
+          </ToolBtn>
 
-      <div className="w-[1px] h-6 bg-white/10 mx-1" />
+          <Divider />
+        </>
+      )}
 
-      {/* Color Palette Menu */}
+      {/* Color picker */}
       <div className="relative">
         <button
-          onClick={() => setShowColorMenu(!showColorMenu)}
-          className="p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center"
-          title="Color & Style Options"
+          onClick={() => setShowColorMenu((v) => !v)}
+          title="Colors & Stroke"
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-all text-zinc-400 hover:text-white hover:bg-white/10 group relative"
         >
           <div
-            className="w-5 h-5 rounded-full border border-white/20 shadow-inner"
+            className="w-5 h-5 rounded-full border-2 border-white/20 shadow-inner"
             style={{ backgroundColor: activeTool === CANVAS_TOOLS.STICKY ? stickyBg : strokeColor }}
           />
+          {/* Tooltip */}
+          <span className="pointer-events-none absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#0F0F1A] text-white text-[11px] font-medium px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-lg z-50">
+            Colors & Style
+          </span>
         </button>
 
         {showColorMenu && (
-          <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 p-3 rounded-2xl bg-[#18181c] border border-white/10 shadow-2xl space-y-3 min-w-[220px]">
+          <motion.div
+            initial={{ opacity: 0, x: 8, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.13 }}
+            className="absolute left-full ml-3 top-0 p-3 rounded-2xl bg-[#1a1a22] border border-white/10 shadow-2xl min-w-[200px] space-y-3"
+          >
+            {/* Stroke color */}
             <div>
-              <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Stroke Color</p>
-              <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Stroke Color</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {STROKE_COLORS.map((c) => (
                   <button
                     key={c}
-                    onClick={() => setStrokeColor(c)}
-                    className={`w-6 h-6 rounded-full border border-white/10 transition-transform ${strokeColor === c ? "scale-125 ring-2 ring-indigo-500" : "hover:scale-110"}`}
+                    onClick={() => handleStrokeColorChange(c)}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      strokeColor === c ? "scale-125 border-[#6D5EF7] shadow-md" : "border-[#E5E7EB] hover:scale-110"
+                    }`}
                     style={{ backgroundColor: c }}
                   />
                 ))}
               </div>
             </div>
 
+            {/* Sticky color */}
             <div>
-              <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Sticky Note Color</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Sticky Color</p>
               <div className="grid grid-cols-6 gap-1.5">
                 {STICKY_COLORS.map((s) => (
                   <button
                     key={s.name}
-                    onClick={() => setStickyBg(s.bg)}
-                    className={`w-6 h-6 rounded-full border border-black/10 transition-transform ${stickyBg === s.bg ? "scale-125 ring-2 ring-indigo-500" : "hover:scale-110"}`}
+                    onClick={() => handleStickyBgChange(s.bg)}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      stickyBg === s.bg ? "scale-125 border-[#6D5EF7] shadow-md" : "border-[#E5E7EB] hover:scale-110"
+                    }`}
                     style={{ backgroundColor: s.bg }}
                     title={s.name}
                   />
@@ -338,39 +346,47 @@ export function BoardToolbar({
               </div>
             </div>
 
+            {/* Stroke width */}
             <div>
-              <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Stroke Width</p>
-              <div className="flex items-center gap-2">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Stroke Width</p>
+              <div className="flex items-center gap-1.5">
                 {[2, 4, 8].map((w) => (
                   <button
                     key={w}
-                    onClick={() => setStrokeWidth(w)}
-                    className={`flex-1 py-1 rounded-lg text-xs font-medium border ${strokeWidth === w ? "bg-indigo-600 text-white border-indigo-500" : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10"}`}
+                    onClick={() => handleStrokeWidthChange(w)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      strokeWidth === w
+                        ? "bg-[#6D5EF7] text-white border-[#6D5EF7]"
+                        : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10"
+                    }`}
                   >
-                    {w === 2 ? "Thin" : w === 4 ? "Medium" : "Thick"}
+                    {w === 2 ? "Thin" : w === 4 ? "Mid" : "Bold"}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 
-      <div className="w-[1px] h-6 bg-white/10 mx-1" />
+      <Divider />
 
-      {/* AI Assistant Button */}
+      {/* AI shortcut */}
       <button
         onClick={toggleAI}
-        className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+        title="Gemini AI Tools"
+        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative group ${
           showAI
-            ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-purple-500/30"
-            : "bg-white/10 text-purple-300 hover:bg-white/15"
+            ? "bg-gradient-to-b from-[#6D5EF7] to-[#8B5CF6] text-white shadow-md shadow-[#6D5EF7]/30"
+            : "text-amber-400 hover:text-amber-300 hover:bg-white/10"
         }`}
       >
-        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-        AI Tools
+        <Sparkles className="w-4 h-4" />
+        <span className="pointer-events-none absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#0F0F1A] text-white text-[11px] font-medium px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-lg z-50">
+          AI Tools
+        </span>
       </button>
-    </div>
+    </motion.div>
   );
 }
 

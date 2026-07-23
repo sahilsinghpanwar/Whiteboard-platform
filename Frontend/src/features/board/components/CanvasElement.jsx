@@ -147,6 +147,11 @@ export function CanvasElement({
                 value={textValue}
                 onChange={(e) => setTextValue(e.target.value)}
                 onBlur={handleTextBlur}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") handleTextBlur();
+                }}
                 className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm text-white"
               />
             ) : (
@@ -169,7 +174,10 @@ export function CanvasElement({
     const cy = y + ry;
 
     return (
-      <g onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}>
+      <g
+        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
+        onDoubleClick={() => !isReadOnly && setIsEditing(true)}
+      >
         <ellipse
           cx={cx}
           cy={cy}
@@ -192,6 +200,28 @@ export function CanvasElement({
             strokeDasharray="4 4"
           />
         )}
+        {(textValue || isEditing) && (
+          <foreignObject x={x + 10} y={y + 10} width={Math.max(width - 20, 20)} height={Math.max(height - 20, 20)}>
+            {isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                onBlur={handleTextBlur}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") handleTextBlur();
+                }}
+                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm text-white"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-center font-sans text-sm text-white overflow-hidden pointer-events-none">
+                {textValue}
+              </div>
+            )}
+          </foreignObject>
+        )}
       </g>
     );
   }
@@ -212,6 +242,7 @@ export function CanvasElement({
           stroke={strokeColor}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
+          markerEnd={element.type === "arrow" ? `url(#arrow-${element.id})` : undefined}
           opacity={opacity}
         />
         {element.type === "arrow" && (
@@ -281,6 +312,11 @@ export function CanvasElement({
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               onBlur={handleTextBlur}
+              onPointerDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Escape") handleTextBlur();
+              }}
               className="w-full h-full bg-transparent border-none outline-none resize-none font-medium text-sm leading-snug"
               style={{ color: stickyTextColor }}
               placeholder="Type note..."
@@ -329,6 +365,11 @@ export function CanvasElement({
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               onBlur={handleTextBlur}
+              onPointerDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Escape") handleTextBlur();
+              }}
               className="w-full h-full bg-transparent border-none outline-none resize-none font-sans leading-tight font-medium"
               style={{ color: strokeColor, fontSize: `${fontSize}px` }}
               placeholder="Type text..."

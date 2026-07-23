@@ -61,7 +61,7 @@ export const useChat = (boardId) => {
     });
 
     chatSocket.on("chat:typing", ({ userId, fullName }) => {
-      if (userId !== user?._id) {
+      if (String(userId) !== String(user?._id)) {
         setTypingUsers((prev) => ({ ...prev, [userId]: fullName }));
       }
     });
@@ -75,7 +75,7 @@ export const useChat = (boardId) => {
     });
 
     chatSocket.on("chat:deleted", ({ messageId }) => {
-      setMessages((prev) => prev.filter((m) => m._id !== messageId && m.id !== messageId));
+      setMessages((prev) => prev.filter((m) => String(m._id || m.id) !== String(messageId)));
     });
 
     return () => {

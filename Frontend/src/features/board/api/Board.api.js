@@ -19,6 +19,10 @@ export const boardApi = {
     api.patch(`/boards/${boardId}/members/${memberId}`, data),
   removeMember: (boardId, memberId) =>
     api.delete(`/boards/${boardId}/members/${memberId}`),
+  acceptInvitation: (boardId) =>
+    api.post(`/boards/${boardId}/members/accept`),
+  declineInvitation: (boardId) =>
+    api.post(`/boards/${boardId}/members/decline`),
 
   // Canvas
   saveCanvas: (boardId, elements) =>

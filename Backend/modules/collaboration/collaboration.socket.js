@@ -1,17 +1,14 @@
 import * as collabService from './collaboration.service.js';
 import { logger } from '../../core/logger/logger.js';
 
-
 export const registerCollaborationHandlers = (io) => {
-
-  // collaboration
   const collab = io.of('/collaboration');
 
   collab.on('connection', (socket) => {
-    const { user } = socket; // attached by JWT middleware in socket.js
+    const { user } = socket; // attached by JWT middleware
     logger.info('Collaboration socket connected', { userId: user._id });
 
-    //  join-board 
+    // ─── join-board ────────────────────────────────────────────────────────
     socket.on('join-board', async ({ boardId }) => {
       try {
         if (!boardId) return socket.emit('error', { message: 'boardId is required' });
@@ -29,7 +26,12 @@ export const registerCollaborationHandlers = (io) => {
 
         // Broadcast to everyone else that someone joined
         socket.to(roomName).emit('user:joined', {
-          user: { _id: user._id, fullName: user.fullName, profileImageUrl: user.profileImageUrl },
+          user: {
+            userId: user._id.toString(),
+            _id: user._id.toString(),
+            fullName: user.fullName,
+            profileImageUrl: user.profileImageUrl,
+          },
         });
 
         logger.info('User joined board', { userId: user._id, boardId });
@@ -38,39 +40,52 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    //  leave-board 
+    // ─── leave-board ───────────────────────────────────────────────────────
     socket.on('leave-board', ({ boardId }) => {
-      handleLeave(socket, io, boardId, user);
+      handleLeave(socket, collab, boardId, user);
     });
 
-    //  element:update 
+    // ─── element:update ───────────────────────────────────────────────────
     socket.on('element:update', async ({ boardId, element }) => {
       try {
         if (!boardId || !element?.id) return;
+        const canEdit = await collabService.canUserEdit(boardId, user._id);
+        if (!canEdit) {
+          socket.emit('error', { message: 'Viewers do not have edit permission on this board' });
+          return;
+        }
 
         const roomName = `board:${boardId}`;
 
-        // Immediately broadcast to everyone else don't wait for DB write.
+        // Broadcast to collaborators
         socket.to(roomName).emit('element:updated', {
           element,
-          updatedBy: user._id,
+          updatedBy: user._id.toString(),
         });
 
-        // Persist async — failure is logged but doesn't kill the socket
+        // Persist async
         await collabService.persistElementUpsert(boardId, user._id, element);
       } catch (err) {
         logger.error('element:update error', { error: err.message });
       }
     });
 
-    //  element:delete 
-    // Client sends: { boardId, elementIds: string[] }
+    // ─── element:delete ───────────────────────────────────────────────────
     socket.on('element:delete', async ({ boardId, elementIds }) => {
       try {
         if (!boardId || !Array.isArray(elementIds) || elementIds.length === 0) return;
+        const canEdit = await collabService.canUserEdit(boardId, user._id);
+        if (!canEdit) {
+          socket.emit('error', { message: 'Viewers do not have edit permission on this board' });
+          return;
+        }
 
         const roomName = `board:${boardId}`;
-        socket.to(roomName).emit('element:deleted', { elementIds, deletedBy: user._id });
+
+        socket.to(roomName).emit('element:deleted', {
+          elementIds,
+          deletedBy: user._id.toString(),
+        });
 
         await collabService.persistElementDelete(boardId, user._id, elementIds);
       } catch (err) {
@@ -78,10 +93,21 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    //  canvas:save 
+    // ─── canvas:save ───────────────────────────────────────────────────────
     socket.on('canvas:save', async ({ boardId, canvas }) => {
       try {
         if (!boardId || !canvas) return;
+        const canEdit = await collabService.canUserEdit(boardId, user._id);
+        if (!canEdit) {
+          socket.emit('error', { message: 'Viewers do not have edit permission on this board' });
+          return;
+        }
+
+        const roomName = `board:${boardId}`;
+
+        // Sync restored/saved canvas across room
+        socket.to(roomName).emit('canvas:updated', { canvas });
+
         await collabService.persistCanvasSave(boardId, user._id, canvas);
         socket.emit('canvas:saved', { boardId });
       } catch (err) {
@@ -90,23 +116,21 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    //  cursor:move
+    // ─── cursor:move ───────────────────────────────────────────────────────
     socket.on('cursor:move', ({ boardId, x, y }) => {
       if (!boardId) return;
       collabService.updateCursor(boardId, socket.id, { x, y });
       socket.to(`board:${boardId}`).emit('cursor:moved', {
-        userId:    user._id,
-        fullName:  user.fullName,
+        userId: user._id.toString(),
+        fullName: user.fullName,
         x,
         y,
       });
     });
 
-    //  disconnect 
+    // ─── disconnect ───────────────────────────────────────────────────────
     socket.on('disconnect', (reason) => {
       logger.info('Collaboration socket disconnected', { userId: user._id, reason });
-
-      // socket.rooms still contains the rooms at disconnect time
       socket.rooms.forEach((room) => {
         if (!room.startsWith('board:')) return;
         const boardId = room.replace('board:', '');
@@ -116,8 +140,6 @@ export const registerCollaborationHandlers = (io) => {
   });
 };
 
-//  Internal helper
-
 const handleLeave = (socket, io, boardId, user) => {
   if (!boardId) return;
   const roomName = `board:${boardId}`;
@@ -125,10 +147,9 @@ const handleLeave = (socket, io, boardId, user) => {
   collabService.removeFromRoom(boardId, socket.id);
   socket.leave(roomName);
 
-  // Tell everyone remaining in the room
   io.to(roomName).emit('user:left', {
-    userId:   user._id,
+    userId: user._id.toString(),
     fullName: user.fullName,
-    users:    collabService.getRoomUsers(boardId), // updated list
+    users: collabService.getRoomUsers(boardId),
   });
 };

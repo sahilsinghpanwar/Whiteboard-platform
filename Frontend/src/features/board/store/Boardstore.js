@@ -11,6 +11,7 @@
  */
 
 import { create } from "zustand";
+import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
 
 export const CANVAS_TOOLS = {
   SELECT: "select",
@@ -48,7 +49,30 @@ export const useBoardStore = create((set, get) => ({
   showMembers: false,
 
   // ─── Board ─────────────────────────────────────────────────────────────
-  setBoard: (board, role) => set({ board, role }),
+  setBoard: (board, role) => {
+    if (role !== undefined) {
+      set({ board, role });
+      return;
+    }
+    if (!board) {
+      set({ board: null, role: null });
+      return;
+    }
+    const currentUser = useAuthStore.getState().user;
+    const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+    const ownerId = board.owner?._id?.toString() || board.owner?.toString();
+    let calculatedRole = "viewer";
+    if (ownerId && currentUserId && ownerId === currentUserId) {
+      calculatedRole = "owner";
+    } else if (board.members) {
+      const member = board.members.find((m) => {
+        const mId = m.userId?._id?.toString() || m.userId?.toString() || m.userId;
+        return String(mId) === String(currentUserId);
+      });
+      if (member) calculatedRole = member.role;
+    }
+    set({ board, role: calculatedRole });
+  },
   clearBoard: () =>
     set({
       board: null, role: null, elements: [], history: [[]], historyIndex: 0,
@@ -87,6 +111,25 @@ export const useBoardStore = create((set, get) => ({
       historyIndex: newHistory.length - 1,
     });
   },
+
+  // ─── Remote Socket Updates (Does not break local undo history) ───────────
+  applyRemoteElementUpdate: (element) =>
+    set((state) => {
+      const exists = state.elements.some((el) => el.id === element.id);
+      return {
+        elements: exists
+          ? state.elements.map((el) => (el.id === element.id ? element : el))
+          : [...state.elements, element],
+      };
+    }),
+
+  applyRemoteElementDelete: (elementIds) =>
+    set((state) => ({
+      elements: state.elements.filter((el) => !elementIds.includes(el.id)),
+      selectedElementIds: state.selectedElementIds.filter((id) => !elementIds.includes(id)),
+    })),
+
+  applyRemoteCanvasSave: (elements) => set({ elements }),
 
   // ─── Undo / Redo ───────────────────────────────────────────────────────
   undo: () => {

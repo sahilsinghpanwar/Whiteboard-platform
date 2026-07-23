@@ -17,7 +17,8 @@ export const useAuthStore = create((set, get) => ({
     }
     try {
       const { data } = await authAPI.getMe();
-      set({ user: data.data, isAuthenticated: true, isChecking: false });
+      const user = data.data.user || data.data;
+      set({ user, isAuthenticated: true, isChecking: false });
     } catch {
       get().clearAuth();
     }
@@ -70,4 +71,31 @@ export const useAuthStore = create((set, get) => ({
     localStorage.setItem('accessToken', token);
     set({ user, token, isAuthenticated: true });
   },
+
+  // Used for cross-tab synchronization
+  syncFromStorage: () => {
+    const currentStoredToken = localStorage.getItem('accessToken');
+    const stateToken = get().token;
+    
+    if (currentStoredToken !== stateToken) {
+      if (!currentStoredToken) {
+        // Logged out in another tab
+        set({ user: null, token: null, isAuthenticated: false });
+      } else {
+        // Logged in as someone else in another tab
+        // Re-validate the new token to get the correct user object
+        set({ token: currentStoredToken });
+        get().checkAuth(); 
+      }
+    }
+  },
 }));
+
+// Cross-tab synchronization listener
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'accessToken') {
+      useAuthStore.getState().syncFromStorage();
+    }
+  });
+}

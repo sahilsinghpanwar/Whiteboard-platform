@@ -5,14 +5,23 @@ import { ApiError } from '../../core/utils/ApiError.js';
 
 const extractJSON = (text) => {
   // Strip markdown code fences if present
-  const cleaned = text
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
+  let cleaned = text
+    .replace(/```(?:json)?/gi, '')
+    .replace(/```/g, '')
     .trim();
 
   try {
     return JSON.parse(cleaned);
   } catch {
+    // Try extracting JSON object/array block with regex
+    const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch {
+        // Fall through
+      }
+    }
     throw ApiError.internal('AI returned an unexpected response format. Please try again.');
   }
 };

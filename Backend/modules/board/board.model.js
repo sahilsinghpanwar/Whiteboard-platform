@@ -77,6 +77,12 @@ const memberSchema = new mongoose.Schema(
           enum: ['owner', 'editor', 'viewer'],
            default: 'editor'
          },
+         
+    status:   {
+         type: String,
+          enum: ['pending', 'accepted'],
+           default: 'pending'
+         },
 
     joinedAt: {
          type: Date,
@@ -183,21 +189,45 @@ boardSchema.virtual('collaboratorCount').get(function () {
 });
 
 
+const toIdStr = (val) => {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  
+  let idVal = val;
+  if (val._id) {
+    idVal = val._id;
+  } else if (val.id && typeof val.id === 'string') {
+    idVal = val.id;
+  } else if (val.userId) {
+    idVal = val.userId;
+  } else if (val.user) {
+    idVal = val.user;
+  }
+
+  if (typeof idVal === 'string') return idVal;
+  
+  if (idVal && typeof idVal.toString === 'function') {
+    const str = idVal.toString();
+    if (str && str !== '[object Object]') return str;
+  }
+  
+  return String(idVal);
+};
+
 // return the role of a given userID on this boardSchema.
 // call this in the service layer for permission checks.
-boardSchema.method.getRoleOf = function (userId) {
-    const id = userId.toString();
-    if(this.owner.toString() === id) return 'owner';
-    const member = this.members.find(m => m.userId.toString() === id);
-    return member ? member.role : null;
-}
-
+boardSchema.methods.getRoleOf = function (userId) {
+  const id = toIdStr(userId);
+  if (toIdStr(this.owner) === id) return 'owner';
+  const member = this.members?.find((m) => toIdStr(m.userId || m.user || m) === id);
+  return member ? member.role : null;
+};
 
 // checks weather a user can write to the canvas.
 // owner and editors can; viewers cannot.
-boardSchema.method.canEdit = function (userId) {
-    const role = this.getRoleOf(userId);
-    return role === 'owner' || role === 'editor';
+boardSchema.methods.canEdit = function (userId) {
+  const role = this.getRoleOf(userId);
+  return role === 'owner' || role === 'editor';
 };
 
 const Board = mongoose.model('Board', boardSchema);

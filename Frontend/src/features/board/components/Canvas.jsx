@@ -9,6 +9,7 @@ export function Canvas({
   emitElementUpdate,
   emitElementDelete,
   emitCursorMove,
+  emitCanvasSave,
 }) {
   const {
     elements,
@@ -23,13 +24,33 @@ export function Canvas({
     undo,
     redo,
     cursors,
+    role,
   } = useBoardStore();
+
+  const canEdit = role === "owner" || role === "editor";
 
   const [isPointerDown, setIsPointerDown] = useState(false);
   const [currentElement, setCurrentElement] = useState(null);
   const [dragStart, setDragStart] = useState(null);
   const [selectionBox, setSelectionBox] = useState(null); // Marquee selection box
+  const [spacePressed, setSpacePressed] = useState(false);
   const svgRef = useRef(null);
+
+  // Spacebar Panning Listener
+  useEffect(() => {
+    const handleSpace = (e) => {
+      if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+      if (e.code === "Space") {
+        setSpacePressed(e.type === "keydown");
+      }
+    };
+    window.addEventListener("keydown", handleSpace);
+    window.addEventListener("keyup", handleSpace);
+    return () => {
+      window.removeEventListener("keydown", handleSpace);
+      window.removeEventListener("keyup", handleSpace);
+    };
+  }, []);
 
   // Convert client screen coordinates to SVG Canvas world space
   const getCanvasCoordinates = useCallback(
@@ -57,8 +78,16 @@ export function Canvas({
     const coords = getCanvasCoordinates(e);
     setIsPointerDown(true);
 
-    // Pan Tool or Middle-Click
-    if (activeTool === CANVAS_TOOLS.HAND || e.button === 1) {
+    // If viewer, only allow panning (HAND / Space) or selection
+    if (!canEdit && activeTool !== CANVAS_TOOLS.HAND && activeTool !== CANVAS_TOOLS.SELECT) {
+      if (e.button === 1 || spacePressed) {
+        setDragStart({ x: e.clientX - viewport.x, y: e.clientY - viewport.y });
+      }
+      return;
+    }
+
+    // Pan Tool, Middle-Click, or Spacebar Held
+    if (activeTool === CANVAS_TOOLS.HAND || e.button === 1 || spacePressed) {
       setDragStart({ x: e.clientX - viewport.x, y: e.clientY - viewport.y });
       return;
     }
@@ -171,12 +200,27 @@ export function Canvas({
     if (!isPointerDown) return;
 
     // Pan Canvas
-    if (dragStart && (activeTool === CANVAS_TOOLS.HAND || e.buttons === 4)) {
+    if (dragStart && (activeTool === CANVAS_TOOLS.HAND || e.buttons === 4 || spacePressed)) {
       setViewport({
         ...viewport,
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y,
       });
+      return;
+    }
+
+    // Element Drag Move
+    if (activeTool === CANVAS_TOOLS.SELECT && dragStart && selectedElementIds.length > 0 && canEdit) {
+      const dx = coords.x - dragStart.x;
+      const dy = coords.y - dragStart.y;
+      
+      selectedElementIds.forEach((id) => {
+        const el = elements.find((e) => e.id === id);
+        if (el) {
+          upsertElement({ ...el, x: el.x + dx, y: el.y + dy });
+        }
+      });
+      setDragStart(coords);
       return;
     }
 
@@ -224,35 +268,74 @@ export function Canvas({
     }
   };
 
+  const getElementBounds = useCallback((el) => {
+    if (el.type === "draw" && el.data?.points?.length > 0) {
+      const xs = el.data.points.map((p) => p.x);
+      const ys = el.data.points.map((p) => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      return { x: minX, y: minY, width: Math.max(maxX - minX, 10), height: Math.max(maxY - minY, 10) };
+    }
+    return {
+      x: el.x,
+      y: el.y,
+      width: el.width || 120,
+      height: el.height || 80,
+    };
+  }, []);
+
   // ─── Pointer Up ──────────────────────────────────────────────────────────
   const handlePointerUp = () => {
     setIsPointerDown(false);
 
-    // Select items enclosed in Marquee Selection Box
-    if (selectionBox && selectionBox.width > 5) {
-      const enclosedIds = elements
+    // Select items intersecting with Marquee Selection Box
+    if (selectionBox && (selectionBox.width > 3 || selectionBox.height > 3)) {
+      const selectedIds = elements
         .filter((el) => {
-          const elW = el.width || 100;
-          const elH = el.height || 100;
+          const bounds = getElementBounds(el);
           return (
-            el.x >= selectionBox.x &&
-            el.y >= selectionBox.y &&
-            el.x + elW <= selectionBox.x + selectionBox.width &&
-            el.y + elH <= selectionBox.y + selectionBox.height
+            bounds.x < selectionBox.x + selectionBox.width &&
+            bounds.x + bounds.width > selectionBox.x &&
+            bounds.y < selectionBox.y + selectionBox.height &&
+            bounds.y + bounds.height > selectionBox.y
           );
         })
         .map((el) => el.id);
 
-      setSelectedElementIds(enclosedIds);
+      setSelectedElementIds(selectedIds);
     }
 
     setSelectionBox(null);
     setDragStart(null);
 
     if (currentElement) {
-      upsertElement(currentElement);
-      emitElementUpdate?.(currentElement);
-      setSelectedElementIds([currentElement.id]);
+      if (!canEdit) {
+        setCurrentElement(null);
+        return;
+      }
+      let finalElement = { ...currentElement };
+
+      // Ensure minimum dimensions if created via single-click
+      if (finalElement.type === "rect" && (finalElement.width < 10 || finalElement.height < 10)) {
+        finalElement.width = 140;
+        finalElement.height = 90;
+      } else if (finalElement.type === "circle" && (finalElement.width < 10 || finalElement.height < 10)) {
+        finalElement.width = 110;
+        finalElement.height = 110;
+      } else if (
+        (finalElement.type === "line" || finalElement.type === "arrow") &&
+        Math.abs(finalElement.width) < 10 &&
+        Math.abs(finalElement.height) < 10
+      ) {
+        finalElement.width = 130;
+        finalElement.height = 0;
+      }
+
+      upsertElement(finalElement);
+      emitElementUpdate?.(finalElement);
+      setSelectedElementIds([finalElement.id]);
       setCurrentElement(null);
     }
   };
@@ -260,20 +343,38 @@ export function Canvas({
   // ─── Zoom with Mouse Wheel ───────────────────────────────────────────────
   const handleWheel = (e) => {
     e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
     const newZoom = Math.min(Math.max(viewport.zoom * zoomFactor, 0.2), 3);
-    setViewport({ ...viewport, zoom: Number(newZoom.toFixed(2)) });
+    if (newZoom === viewport.zoom) return;
+
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+
+    // Zoom towards mouse cursor focal point
+    const newX = clientX - (clientX - viewport.x) * (newZoom / viewport.zoom);
+    const newY = clientY - (clientY - viewport.y) * (newZoom / viewport.zoom);
+
+    setViewport({
+      x: Number(newX.toFixed(2)),
+      y: Number(newY.toFixed(2)),
+      zoom: Number(newZoom.toFixed(2)),
+    });
   };
 
   // ─── Keyboard Shortcuts (Delete, Undo, Redo) ─────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+      if (!canEdit) return;
 
       // Undo: Ctrl+Z / Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();
-        undo();
+        const prev = undo();
+        if (prev && emitCanvasSave) emitCanvasSave(prev);
         return;
       }
 
@@ -283,7 +384,8 @@ export function Canvas({
         ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z")
       ) {
         e.preventDefault();
-        redo();
+        const next = redo();
+        if (next && emitCanvasSave) emitCanvasSave(next);
         return;
       }
 
@@ -296,7 +398,7 @@ export function Canvas({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedElementIds, deleteElements, emitElementDelete, undo, redo]);
+  }, [selectedElementIds, deleteElements, emitElementDelete, undo, redo, canEdit]);
 
   return (
     <div
@@ -319,7 +421,7 @@ export function Canvas({
             patternUnits="userSpaceOnUse"
             patternTransform={`translate(${viewport.x}, ${viewport.y})`}
           >
-            <circle cx="2" cy="2" r={1.2 * viewport.zoom} fill="rgba(255, 255, 255, 0.15)" />
+            <circle cx="2" cy="2" r={1.2 * viewport.zoom} fill="rgba(255, 255, 255, 0.12)" />
           </pattern>
         </defs>
 
@@ -333,6 +435,7 @@ export function Canvas({
               key={el.id}
               element={el}
               isSelected={selectedElementIds.includes(el.id)}
+              isReadOnly={!canEdit}
               onSelect={(id, isShift) => {
                 if (isShift) {
                   setSelectedElementIds(
@@ -345,6 +448,7 @@ export function Canvas({
                 }
               }}
               onUpdate={(updatedEl) => {
+                if (!canEdit) return;
                 upsertElement(updatedEl);
                 emitElementUpdate?.(updatedEl);
               }}
@@ -358,8 +462,8 @@ export function Canvas({
               y={selectionBox.y}
               width={selectionBox.width}
               height={selectionBox.height}
-              fill="rgba(99, 102, 241, 0.15)"
-              stroke="#6366f1"
+              fill="rgba(109, 94, 247, 0.10)"
+              stroke="#6D5EF7"
               strokeWidth="1.5"
               strokeDasharray="4 4"
               rx="4"

@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "@/components/layout/Protectedroute.jsx";
 
 // Lazy-loaded pages for code splitting
+const LandingPage = lazy(() => import("@/pages/Landing.jsx"));
 const LoginPage = lazy(() => import("@/pages/auth/Login.jsx"));
 const RegisterPage = lazy(() => import("@/pages/auth/Register.jsx"));
 const GoogleCallbackPage = lazy(() => import("@/pages/auth/Googlecallbackpage.jsx"));
@@ -51,6 +52,7 @@ const App = () => {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/google/success" element={<GoogleCallbackPage />} />
@@ -74,8 +76,7 @@ const App = () => {
             />
 
             {/* Default redirect */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

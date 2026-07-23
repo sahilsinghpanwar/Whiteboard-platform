@@ -20,19 +20,31 @@ const getUserColor = (userId) => {
 export const useBoard = (boardId) => {
   const socket = useSocketStore((s) => s.socket);
   const {
-    setBoard, setElements, setActiveUsers,
-    upsertElement, deleteElements,
-    addActiveUser, removeActiveUser, updateCursor,
+    setActiveUsers,
+    applyRemoteElementUpdate,
+    applyRemoteElementDelete,
+    applyRemoteCanvasSave,
+    addActiveUser,
+    removeActiveUser,
+    updateCursor,
     clearBoard,
+    setBoard,
   } = useBoardStore();
 
   // ─── Join / Leave room on mount / unmount ─────────────────────────────────
   useEffect(() => {
     if (!socket || !boardId) return;
 
-    socket.emit("join-board", { boardId });
+    const joinRoom = () => {
+      socket.emit("join-board", { boardId });
+    };
+
+    joinRoom();
+
+    socket.on("connect", joinRoom);
 
     return () => {
+      socket.off("connect", joinRoom);
       socket.emit("leave-board", { boardId });
       clearBoard();
     };
@@ -45,18 +57,24 @@ export const useBoard = (boardId) => {
     // Room active users snapshot
     const onRoomUsers = ({ users }) => {
       if (Array.isArray(users)) {
-        setActiveUsers(users.map((u) => ({ ...u, color: getUserColor(u.userId || u._id) })));
+        setActiveUsers(
+          users.map((u) => {
+            const uId = u.userId || u._id;
+            return { ...u, userId: uId, color: getUserColor(uId) };
+          })
+        );
       }
     };
 
     // Broadcast when another user joins
     const onUserJoined = ({ user }) => {
       if (user) {
+        const uId = user.userId || user._id;
         addActiveUser({
-          userId: user._id,
+          userId: uId,
           fullName: user.fullName,
           profileImageUrl: user.profileImageUrl,
-          color: getUserColor(user._id),
+          color: getUserColor(uId),
         });
       }
     };
@@ -64,7 +82,12 @@ export const useBoard = (boardId) => {
     // Broadcast when another user leaves
     const onUserLeft = ({ userId, users }) => {
       if (users && Array.isArray(users)) {
-        setActiveUsers(users.map((u) => ({ ...u, color: getUserColor(u.userId || u._id) })));
+        setActiveUsers(
+          users.map((u) => {
+            const uId = u.userId || u._id;
+            return { ...u, userId: uId, color: getUserColor(uId) };
+          })
+        );
       } else if (userId) {
         removeActiveUser(userId);
       }
@@ -73,14 +96,21 @@ export const useBoard = (boardId) => {
     // Real-time element updates
     const onElementUpdated = ({ element }) => {
       if (element) {
-        upsertElement(element);
+        applyRemoteElementUpdate(element);
       }
     };
 
     // Real-time element deletions
     const onElementDeleted = ({ elementIds }) => {
       if (Array.isArray(elementIds)) {
-        deleteElements(elementIds);
+        applyRemoteElementDelete(elementIds);
+      }
+    };
+
+    // Real-time canvas full updates (e.g. bulk clear, restored states)
+    const onCanvasUpdated = ({ canvas }) => {
+      if (canvas && Array.isArray(canvas.elements)) {
+        applyRemoteCanvasSave(canvas.elements);
       }
     };
 
@@ -101,7 +131,16 @@ export const useBoard = (boardId) => {
     socket.on("user:left", onUserLeft);
     socket.on("element:updated", onElementUpdated);
     socket.on("element:deleted", onElementDeleted);
+    socket.on("canvas:updated", onCanvasUpdated);
     socket.on("cursor:moved", onCursorMoved);
+
+    // Dynamic Board State Update (Roles, Title, etc.)
+    const onBoardUpdated = ({ board }) => {
+      if (board) {
+        setBoard(board);
+      }
+    };
+    socket.on("board:updated", onBoardUpdated);
 
     return () => {
       socket.off("room:users", onRoomUsers);
@@ -109,7 +148,9 @@ export const useBoard = (boardId) => {
       socket.off("user:left", onUserLeft);
       socket.off("element:updated", onElementUpdated);
       socket.off("element:deleted", onElementDeleted);
+      socket.off("canvas:updated", onCanvasUpdated);
       socket.off("cursor:moved", onCursorMoved);
+      socket.off("board:updated", onBoardUpdated);
     };
   }, [socket]);
 

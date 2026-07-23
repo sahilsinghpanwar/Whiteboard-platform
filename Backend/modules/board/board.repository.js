@@ -106,7 +106,17 @@ export const deleteElements = (boardId, elementIds) =>
 export const addMember = (boardId, userId, role = 'editor') =>
   Board.findByIdAndUpdate(
     boardId,
-    { $addToSet: { members: { userId, role, joinedAt: new Date() } } },
+    { $addToSet: { members: { userId, role, status: 'pending', joinedAt: new Date() } } },
+    { returnDocument: 'after' }
+  ).lean();
+
+/**
+  Update an existing member's status (e.g. accepted).
+ */
+export const updateMemberStatus = (boardId, userId, status) =>
+  Board.findOneAndUpdate(
+    { _id: boardId, 'members.userId': userId },
+    { $set: { 'members.$.status': status } },
     { returnDocument: 'after' }
   ).lean();
 

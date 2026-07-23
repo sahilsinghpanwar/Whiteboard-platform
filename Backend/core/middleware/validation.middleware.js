@@ -1,21 +1,38 @@
 import ApiError from "../utils/ApiError.js";
 
 const validate = (schema) => (req, res, next) => {
-  // Support both schema passed directly or schema object like { body: schema }
-  const schemaToParse = schema.body || schema;
-  const dataToParse = schema.body ? req.body : req.body;
+  if (!schema) return next();
 
-  const result = schemaToParse.safeParse(dataToParse);
-
-  if (!result.success) {
-    const errors = result.error.issues.map(
-      (issue) => `${issue.path.join(".")}: ${issue.message}`
-    );
-    return next(ApiError.badRequest("Validation failed", errors));
+  // Direct Zod schema (defaults to validating req.body)
+  if (typeof schema.safeParse === "function") {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      const errors = result.error.issues.map(
+        (issue) => `${issue.path.join(".")}: ${issue.message}`
+      );
+      return next(ApiError.badRequest("Validation failed", errors));
+    }
+    req.body = result.data;
+    return next();
   }
-  req.body = result.data;
+
+  // Target object containing params, query, or body Zod schemas
+  for (const target of ["params", "query", "body"]) {
+    if (schema[target] && typeof schema[target].safeParse === "function") {
+      const result = schema[target].safeParse(req[target]);
+      if (!result.success) {
+        const errors = result.error.issues.map(
+          (issue) => `${issue.path.join(".")}: ${issue.message}`
+        );
+        return next(ApiError.badRequest("Validation failed", errors));
+      }
+      req[target] = result.data;
+    }
+  }
+
   next();
 };
 
 export { validate };
 export default validate;
+
