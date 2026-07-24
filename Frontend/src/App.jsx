@@ -1,8 +1,9 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "@/components/layout/Protectedroute.jsx";
+import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
 
 // Lazy-loaded pages for code splitting
 const LandingPage = lazy(() => import("@/pages/Landing.jsx"));
@@ -46,6 +47,19 @@ const PageLoader = () => (
 );
 
 const App = () => {
+  const { checkAuth, isChecking } = useAuthStore();
+
+  // On every page load/refresh, validate the stored token once.
+  // Until this resolves, we show a spinner so ProtectedRoute never
+  // sees isAuthenticated=false mid-check and incorrectly redirects.
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  if (isChecking) {
+    return <PageLoader />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

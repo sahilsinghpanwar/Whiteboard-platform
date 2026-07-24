@@ -5,15 +5,16 @@ export function CanvasElement({
   isSelected,
   onSelect,
   onUpdate,
+  onResizeStart,
   isReadOnly,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [textValue, setTextValue] = useState(element.data?.text || "");
+  const [textValue, setTextValue] = useState(element.data?.text || element.data?.content || "");
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    setTextValue(element.data?.text || "");
-  }, [element.data?.text]);
+    setTextValue(element.data?.text || element.data?.content || "");
+  }, [element.data?.text, element.data?.content]);
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -26,14 +27,66 @@ export function CanvasElement({
     setIsEditing(false);
     onUpdate({
       ...element,
-      data: { ...element.data, text: textValue },
+      data: { ...element.data, text: textValue, content: textValue },
     });
   };
 
-  const strokeColor = element.data?.strokeColor || "#ffffff";
-  const fillColor = element.data?.fillColor || "transparent";
+  const strokeColor = element.data?.strokeColor || "#6D5EF7";
+  const fillColor = element.data?.fillColor || element.data?.bgColor || "transparent";
   const strokeWidth = element.data?.strokeWidth || 2;
   const opacity = element.data?.opacity ?? 1;
+
+  const handlePointerDown = (e) => {
+    e.stopPropagation();
+    onSelect(element.id, e.shiftKey, e);
+  };
+
+  // Helper render for Corner Resize Handles
+  const renderResizeHandles = (x, y, width, height) => {
+    if (!isSelected || isReadOnly) return null;
+
+    const handles = [
+      { id: "nw", cx: x, cy: y, cursor: "nwse-resize" },
+      { id: "ne", cx: x + width, cy: y, cursor: "nesw-resize" },
+      { id: "se", cx: x + width, cy: y + height, cursor: "nwse-resize" },
+      { id: "sw", cx: x, cy: y + height, cursor: "nesw-resize" },
+    ];
+
+    return (
+      <g>
+        {/* Selection Bounding Outline */}
+        <rect
+          x={x - 3}
+          y={y - 3}
+          width={Math.max(width, 10) + 6}
+          height={Math.max(height, 10) + 6}
+          rx={6}
+          fill="none"
+          stroke="#6D5EF7"
+          strokeWidth={1.5}
+          strokeDasharray="4 4"
+        />
+
+        {/* Handles */}
+        {handles.map((h) => (
+          <circle
+            key={h.id}
+            cx={h.cx}
+            cy={h.cy}
+            r={5}
+            fill="#ffffff"
+            stroke="#6D5EF7"
+            strokeWidth={2}
+            style={{ cursor: h.cursor }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onResizeStart?.(element.id, h.id, e);
+            }}
+          />
+        ))}
+      </g>
+    );
+  };
 
   // ─── Image Element ───────────────────────────────────────────────────────
   if (element.type === "image") {
@@ -41,30 +94,17 @@ export function CanvasElement({
     const imageUrl = element.data?.url || element.data?.src;
 
     return (
-      <g
-        transform={`translate(${x}, ${y})`}
-        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
-      >
+      <g onPointerDown={handlePointerDown}>
         <image
+          x={x}
+          y={y}
           href={imageUrl}
           width={width}
           height={height}
           preserveAspectRatio="xMidYMid slice"
-          className="rounded-lg shadow-lg"
+          style={{ borderRadius: 8 }}
         />
-        {isSelected && (
-          <rect
-            x={-3}
-            y={-3}
-            width={width + 6}
-            height={height + 6}
-            rx={6}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-          />
-        )}
+        {renderResizeHandles(x, y, width, height)}
       </g>
     );
   }
@@ -75,13 +115,11 @@ export function CanvasElement({
     if (points.length === 0) return null;
 
     const pathData = points.reduce((acc, point, index) => {
-      return index === 0
-        ? `M ${point.x} ${point.y}`
-        : `${acc} L ${point.x} ${point.y}`;
+      return index === 0 ? `M ${point.x} ${point.y}` : `${acc} L ${point.x} ${point.y}`;
     }, "");
 
     return (
-      <g onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}>
+      <g onPointerDown={handlePointerDown}>
         <path
           d={pathData}
           fill="none"
@@ -95,10 +133,10 @@ export function CanvasElement({
           <path
             d={pathData}
             fill="none"
-            stroke="#6366f1"
+            stroke="#6D5EF7"
             strokeWidth={strokeWidth + 4}
             strokeDasharray="4 4"
-            opacity={0.7}
+            opacity={0.6}
           />
         )}
       </g>
@@ -107,16 +145,14 @@ export function CanvasElement({
 
   // ─── Rectangle ───────────────────────────────────────────────────────────
   if (element.type === "rect") {
-    const { x, y, width = 120, height = 80 } = element;
-    const rx = element.data?.borderRadius || 6;
+    const { x, y, width = 140, height = 90 } = element;
+    const rx = element.data?.borderRadius || 8;
 
     return (
-      <g
-        transform={`translate(${x}, ${y})`}
-        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
-        onDoubleClick={() => !isReadOnly && setIsEditing(true)}
-      >
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
         <rect
+          x={x}
+          y={y}
           width={Math.max(width, 10)}
           height={Math.max(height, 10)}
           rx={rx}
@@ -125,22 +161,9 @@ export function CanvasElement({
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
-        {isSelected && (
-          <rect
-            x={-3}
-            y={-3}
-            width={Math.max(width, 10) + 6}
-            height={Math.max(height, 10) + 6}
-            rx={rx + 2}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-          />
-        )}
         {/* Inline Label / Text */}
         {(textValue || isEditing) && (
-          <foreignObject x={8} y={8} width={Math.max(width - 16, 20)} height={Math.max(height - 16, 20)}>
+          <foreignObject x={x + 8} y={y + 8} width={Math.max(width - 16, 20)} height={Math.max(height - 16, 20)}>
             {isEditing ? (
               <textarea
                 ref={textareaRef}
@@ -152,32 +175,34 @@ export function CanvasElement({
                   e.stopPropagation();
                   if (e.key === "Escape") handleTextBlur();
                 }}
-                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm text-white"
+                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm font-medium"
+                style={{ color: element.data?.textColor || strokeColor }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-center font-sans text-sm text-white overflow-hidden pointer-events-none">
+              <div
+                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden pointer-events-none"
+                style={{ color: element.data?.textColor || strokeColor }}
+              >
                 {textValue}
               </div>
             )}
           </foreignObject>
         )}
+        {renderResizeHandles(x, y, width, height)}
       </g>
     );
   }
 
   // ─── Circle / Ellipse ───────────────────────────────────────────────────
   if (element.type === "circle") {
-    const { x, y, width = 100, height = 100 } = element;
+    const { x, y, width = 110, height = 110 } = element;
     const rx = Math.max(width / 2, 5);
     const ry = Math.max(height / 2, 5);
     const cx = x + rx;
     const cy = y + ry;
 
     return (
-      <g
-        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
-        onDoubleClick={() => !isReadOnly && setIsEditing(true)}
-      >
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
         <ellipse
           cx={cx}
           cy={cy}
@@ -188,18 +213,6 @@ export function CanvasElement({
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
-        {isSelected && (
-          <ellipse
-            cx={cx}
-            cy={cy}
-            rx={rx + 3}
-            ry={ry + 3}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-          />
-        )}
         {(textValue || isEditing) && (
           <foreignObject x={x + 10} y={y + 10} width={Math.max(width - 20, 20)} height={Math.max(height - 20, 20)}>
             {isEditing ? (
@@ -213,27 +226,32 @@ export function CanvasElement({
                   e.stopPropagation();
                   if (e.key === "Escape") handleTextBlur();
                 }}
-                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm text-white"
+                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-sm font-medium"
+                style={{ color: element.data?.textColor || strokeColor }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-center font-sans text-sm text-white overflow-hidden pointer-events-none">
+              <div
+                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden pointer-events-none"
+                style={{ color: element.data?.textColor || strokeColor }}
+              >
                 {textValue}
               </div>
             )}
           </foreignObject>
         )}
+        {renderResizeHandles(x, y, width, height)}
       </g>
     );
   }
 
   // ─── Line / Arrow ────────────────────────────────────────────────────────
   if (element.type === "line" || element.type === "arrow") {
-    const { x, y, width = 100, height = 0 } = element;
+    const { x, y, width = 120, height = 0 } = element;
     const x2 = x + width;
     const y2 = y + height;
 
     return (
-      <g onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}>
+      <g onPointerDown={handlePointerDown}>
         <line
           x1={x}
           y1={y}
@@ -264,7 +282,7 @@ export function CanvasElement({
             y1={y}
             x2={x2}
             y2={y2}
-            stroke="#6366f1"
+            stroke="#6D5EF7"
             strokeWidth={strokeWidth + 4}
             strokeDasharray="4 4"
             opacity={0.6}
@@ -281,31 +299,17 @@ export function CanvasElement({
     const stickyTextColor = element.data?.textColor || "#1e293b";
 
     return (
-      <g
-        transform={`translate(${x}, ${y})`}
-        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
-        onDoubleClick={() => !isReadOnly && setIsEditing(true)}
-      >
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
         <rect
+          x={x}
+          y={y}
           width={width}
           height={height}
-          rx={4}
+          rx={6}
           fill={stickyBg}
-          style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))" }}
+          style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25))" }}
         />
-        {isSelected && (
-          <rect
-            x={-3}
-            y={-3}
-            width={width + 6}
-            height={height + 6}
-            rx={6}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth={2}
-          />
-        )}
-        <foreignObject x={12} y={12} width={width - 24} height={height - 24}>
+        <foreignObject x={x + 12} y={y + 12} width={width - 24} height={height - 24}>
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -330,6 +334,7 @@ export function CanvasElement({
             </div>
           )}
         </foreignObject>
+        {renderResizeHandles(x, y, width, height)}
       </g>
     );
   }
@@ -340,25 +345,8 @@ export function CanvasElement({
     const fontSize = element.data?.fontSize || 18;
 
     return (
-      <g
-        transform={`translate(${x}, ${y})`}
-        onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.shiftKey); }}
-        onDoubleClick={() => !isReadOnly && setIsEditing(true)}
-      >
-        {isSelected && (
-          <rect
-            x={-4}
-            y={-4}
-            width={width + 8}
-            height={height + 8}
-            rx={4}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-          />
-        )}
-        <foreignObject x={0} y={0} width={width} height={height}>
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
+        <foreignObject x={x} y={y} width={width} height={height}>
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -383,6 +371,7 @@ export function CanvasElement({
             </div>
           )}
         </foreignObject>
+        {renderResizeHandles(x, y, width, height)}
       </g>
     );
   }

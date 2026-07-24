@@ -1,78 +1,69 @@
-export const buildBoardContext = (canvas) => {
-  if (!canvas?.elements?.length) return '';
+/**
+ * Board Context Extractor
+ * Serializes the current board canvas, element details, selected objects,
+ * positions, and spatial relationships into a clean context string for Gemini AI.
+ */
 
+export const buildBoardContext = (canvas, selectedElementIds = []) => {
+  if (!canvas?.elements?.length) {
+    return 'BOARD STATE: The canvas is currently empty (0 elements). Center coordinates around x: 400, y: 300.';
+  }
+
+  const elements = canvas.elements;
+  const selectedSet = new Set(selectedElementIds.map(String));
   const lines = [];
-  const groups = groupByType(canvas.elements);
 
-  if (groups.text?.length) {
-    lines.push('TEXT CONTENT ON BOARD:');
-    groups.text.forEach((el, i) => {
-      const content = el.data?.content ?? '';
-      if (content.trim()) lines.push(`  ${i + 1}. "${content.trim()}"`);
-    });
+  lines.push(`BOARD SUMMARY: Total elements = ${elements.length}`);
+  if (selectedSet.size > 0) {
+    lines.push(`CURRENT USER SELECTION: ${selectedSet.size} element(s) selected [IDs: ${Array.from(selectedSet).join(', ')}]`);
+  } else {
+    lines.push('CURRENT USER SELECTION: No elements currently selected.');
   }
 
-  if (groups.sticky?.length) {
-    lines.push('\nSTICKY NOTES:');
-    groups.sticky.forEach((el, i) => {
-      const content = el.data?.content ?? '';
-      if (content.trim()) lines.push(`  ${i + 1}. "${content.trim()}"`);
-    });
-  }
+  lines.push('\nCANVAS OBJECTS DETAILED MANIFEST:');
 
-  if (groups.shape?.length) {
-    lines.push(`\nSHAPES: ${groups.shape.length} shape(s) on canvas`);
-    const withLabels = groups.shape.filter((el) => el.data?.label);
-    if (withLabels.length) {
-      withLabels.forEach((el) => lines.push(`  - ${el.type}: "${el.data.label}"`));
+  elements.forEach((el, index) => {
+    const isSelected = selectedSet.has(String(el.id));
+    const textContent = el.data?.text || el.data?.content || el.data?.label || '';
+    const color = el.data?.bgColor || el.data?.fillColor || el.data?.strokeColor || 'default';
+    const type = el.type || 'unknown';
+    const width = el.width || 120;
+    const height = el.height || 80;
+
+    let elDesc = `[${index + 1}] ID: "${el.id}" | Type: ${type} | Pos: (${Math.round(el.x)}, ${Math.round(el.y)}) | Size: ${Math.round(width)}x${Math.round(height)} | Color: ${color}`;
+
+    if (textContent.trim()) {
+      elDesc += ` | Text: "${textContent.trim().replace(/\n/g, ' ')}"`;
     }
-  }
 
-  if (groups.arrow?.length || groups.line?.length) {
-    const connectors = [...(groups.arrow ?? []), ...(groups.line ?? [])];
-    lines.push(`\nCONNECTORS: ${connectors.length} connector(s) linking elements`);
-    const withLabels = connectors.filter((el) => el.data?.label);
-    if (withLabels.length) {
-      withLabels.forEach((el) => lines.push(`  - "${el.data.label}"`));
+    if (isSelected) {
+      elDesc += ' ⭐ [SELECTED BY USER]';
     }
-  }
 
-  if (groups.image?.length) {
-    lines.push(`\nIMAGES: ${groups.image.length} image(s) embedded`);
-    const withAlt = groups.image.filter((el) => el.data?.alt);
-    if (withAlt.length) {
-      withAlt.forEach((el) => lines.push(`  - "${el.data.alt}"`));
+    if (el.from && el.to) {
+      elDesc += ` | Connector: ${el.from} ➔ ${el.to}`;
     }
-  }
 
-  lines.push(`\nTOTAL ELEMENTS: ${canvas.elements.length}`);
+    lines.push(`  ${elDesc}`);
+  });
 
   return lines.join('\n');
 };
 
-export const buildSelectionContext = (elements) => {
-  if (!elements?.length) return '';
-  return buildBoardContext({ elements });
+export const buildSelectionContext = (canvas, selectedElementIds = []) => {
+  if (!canvas?.elements?.length || !selectedElementIds?.length) return '';
+  const selectedSet = new Set(selectedElementIds.map(String));
+  const selectedElements = canvas.elements.filter((el) => selectedSet.has(String(el.id)));
+
+  if (!selectedElements.length) return '';
+
+  return buildBoardContext({ elements: selectedElements }, selectedElementIds);
 };
 
-//  Internal 
-
-const TEXT_TYPES   = ['text', 'sticky'];
-const SHAPE_TYPES  = ['rectangle', 'ellipse', 'diamond', 'triangle', 'rounded'];
-const CONNECTOR_TYPES = ['arrow', 'line'];
-
-const groupByType = (elements) => {
-  const groups = {};
-  for (const el of elements) {
-    let bucket;
-    if (TEXT_TYPES.includes(el.type))      bucket = el.type;
-    else if (SHAPE_TYPES.includes(el.type)) bucket = 'shape';
-    else if (CONNECTOR_TYPES.includes(el.type)) bucket = el.type;
-    else if (el.type === 'image')           bucket = 'image';
-    else                                    bucket = 'other';
-
-    if (!groups[bucket]) groups[bucket] = [];
-    groups[bucket].push(el);
-  }
-  return groups;
+export const formatConversationHistory = (history = []) => {
+  if (!history || history.length === 0) return '';
+  return history
+    .slice(-6)
+    .map((msg) => `${msg.role.toUpperCase()}: ${msg.content.slice(0, 300)}`)
+    .join('\n');
 };

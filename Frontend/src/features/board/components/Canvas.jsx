@@ -1,6 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useBoardStore, CANVAS_TOOLS } from "../store/Boardstore.js";
 import CanvasElement from "./CanvasElement.jsx";
+import { Trash2, Copy, Type, Palette, Move, Sparkles } from "lucide-react";
+import toast from "react-hot-toast";
+
+const PALETTE_COLORS = [
+  "#6D5EF7", "#EF4444", "#10B981", "#F59E0B", "#3B82F6",
+  "#EC4899", "#fef08a", "#bae6fd", "#bbf7d0", "#e9d5ff",
+];
 
 export function Canvas({
   strokeColor = "#ffffff",
@@ -25,6 +33,7 @@ export function Canvas({
     redo,
     cursors,
     role,
+    toggleAI,
   } = useBoardStore();
 
   const canEdit = role === "owner" || role === "editor";
@@ -32,8 +41,10 @@ export function Canvas({
   const [isPointerDown, setIsPointerDown] = useState(false);
   const [currentElement, setCurrentElement] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [selectionBox, setSelectionBox] = useState(null); // Marquee selection box
+  const [selectionBox, setSelectionBox] = useState(null);
+  const [resizingState, setResizingState] = useState(null); // { id, handle, initialPos }
   const [spacePressed, setSpacePressed] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const svgRef = useRef(null);
 
   // Spacebar Panning Listener
@@ -71,14 +82,13 @@ export function Canvas({
     [viewport]
   );
 
-  // ─── Pointer Down ────────────────────────────────────────────────────────
+  // ─── Pointer Down on Canvas Background ──────────────────────────────────
   const handlePointerDown = (e) => {
-    if (e.button === 2) return; // Ignore right click
+    if (e.button === 2) return;
 
     const coords = getCanvasCoordinates(e);
     setIsPointerDown(true);
 
-    // If viewer, only allow panning (HAND / Space) or selection
     if (!canEdit && activeTool !== CANVAS_TOOLS.HAND && activeTool !== CANVAS_TOOLS.SELECT) {
       if (e.button === 1 || spacePressed) {
         setDragStart({ x: e.clientX - viewport.x, y: e.clientY - viewport.y });
@@ -86,13 +96,12 @@ export function Canvas({
       return;
     }
 
-    // Pan Tool, Middle-Click, or Spacebar Held
     if (activeTool === CANVAS_TOOLS.HAND || e.button === 1 || spacePressed) {
       setDragStart({ x: e.clientX - viewport.x, y: e.clientY - viewport.y });
       return;
     }
 
-    // Select Tool - Background click starts marquee selection box
+    // Select Tool - Background click resets selection or starts marquee
     if (activeTool === CANVAS_TOOLS.SELECT) {
       if (e.target === svgRef.current || e.target.tagName === "svg" || e.target.id === "grid-bg") {
         setSelectedElementIds([]);
@@ -103,14 +112,10 @@ export function Canvas({
     }
 
     // Eraser Tool
-    if (activeTool === CANVAS_TOOLS.ERASER) {
-      return;
-    }
+    if (activeTool === CANVAS_TOOLS.ERASER) return;
 
-    // New Element ID
     const elementId = `el_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
-    // Freehand Drawing Tool
     if (activeTool === CANVAS_TOOLS.DRAW) {
       const newDrawElement = {
         id: elementId,
@@ -127,7 +132,6 @@ export function Canvas({
       return;
     }
 
-    // Shapes Tool
     if (activeTool === CANVAS_TOOLS.SHAPE) {
       const newShapeElement = {
         id: elementId,
@@ -147,7 +151,6 @@ export function Canvas({
       return;
     }
 
-    // Sticky Note Tool
     if (activeTool === CANVAS_TOOLS.STICKY) {
       const newStickyElement = {
         id: elementId,
@@ -168,7 +171,6 @@ export function Canvas({
       return;
     }
 
-    // Text Box Tool
     if (activeTool === CANVAS_TOOLS.TEXT) {
       const newTextElement = {
         id: elementId,
@@ -190,11 +192,9 @@ export function Canvas({
     }
   };
 
-  // ─── Pointer Move ────────────────────────────────────────────────────────
+  // ─── Pointer Move (Dragging & Resizing) ──────────────────────────────────
   const handlePointerMove = (e) => {
     const coords = getCanvasCoordinates(e);
-
-    // Emit live cursor coordinates
     emitCursorMove?.(coords.x, coords.y);
 
     if (!isPointerDown) return;
@@ -209,15 +209,50 @@ export function Canvas({
       return;
     }
 
+    // Corner Resizing
+    if (resizingState && canEdit) {
+      const { id, handle, initialPos } = resizingState;
+      const el = elements.find((item) => item.id === id);
+      if (el) {
+        let newX = el.x;
+        let newY = el.y;
+        let newWidth = el.width || 100;
+        let newHeight = el.height || 100;
+
+        const dx = coords.x - initialPos.x;
+        const dy = coords.y - initialPos.y;
+
+        if (handle.includes("e")) newWidth = Math.max(initialPos.width + dx, 20);
+        if (handle.includes("s")) newHeight = Math.max(initialPos.height + dy, 20);
+        if (handle.includes("w")) {
+          const w = Math.max(initialPos.width - dx, 20);
+          newX = initialPos.x + (initialPos.width - w);
+          newWidth = w;
+        }
+        if (handle.includes("n")) {
+          const h = Math.max(initialPos.height - dy, 20);
+          newY = initialPos.y + (initialPos.height - h);
+          newHeight = h;
+        }
+
+        const resized = { ...el, x: newX, y: newY, width: newWidth, height: newHeight };
+        upsertElement(resized);
+        emitElementUpdate?.(resized);
+      }
+      return;
+    }
+
     // Element Drag Move
     if (activeTool === CANVAS_TOOLS.SELECT && dragStart && selectedElementIds.length > 0 && canEdit) {
       const dx = coords.x - dragStart.x;
       const dy = coords.y - dragStart.y;
-      
+
       selectedElementIds.forEach((id) => {
-        const el = elements.find((e) => e.id === id);
+        const el = elements.find((item) => item.id === id);
         if (el) {
-          upsertElement({ ...el, x: el.x + dx, y: el.y + dy });
+          const updated = { ...el, x: el.x + dx, y: el.y + dy };
+          upsertElement(updated);
+          emitElementUpdate?.(updated);
         }
       });
       setDragStart(coords);
@@ -228,7 +263,6 @@ export function Canvas({
     if (activeTool === CANVAS_TOOLS.SELECT && dragStart && selectionBox) {
       const width = coords.x - dragStart.x;
       const height = coords.y - dragStart.y;
-
       setSelectionBox({
         x: width < 0 ? coords.x : dragStart.x,
         y: height < 0 ? coords.y : dragStart.y,
@@ -238,63 +272,49 @@ export function Canvas({
       return;
     }
 
-    // Freehand Drawing Update
-    if (activeTool === CANVAS_TOOLS.DRAW && currentElement) {
-      const updatedElement = {
+    // Creating Draw Element
+    if (currentElement && currentElement.type === "draw") {
+      const updatedDraw = {
         ...currentElement,
         data: {
           ...currentElement.data,
           points: [...currentElement.data.points, { x: coords.x, y: coords.y }],
         },
       };
-      setCurrentElement(updatedElement);
+      setCurrentElement(updatedDraw);
       return;
     }
 
-    // Shape Drag Sizing Update
-    if (activeTool === CANVAS_TOOLS.SHAPE && currentElement && dragStart) {
+    // Creating Shape Element
+    if (currentElement && dragStart) {
       const width = coords.x - dragStart.x;
       const height = coords.y - dragStart.y;
-
-      const updatedElement = {
+      const updatedShape = {
         ...currentElement,
         x: width < 0 ? coords.x : dragStart.x,
         y: height < 0 ? coords.y : dragStart.y,
         width: Math.abs(width),
         height: Math.abs(height),
       };
-      setCurrentElement(updatedElement);
+      setCurrentElement(updatedShape);
       return;
     }
   };
 
-  const getElementBounds = useCallback((el) => {
-    if (el.type === "draw" && el.data?.points?.length > 0) {
-      const xs = el.data.points.map((p) => p.x);
-      const ys = el.data.points.map((p) => p.y);
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
-      return { x: minX, y: minY, width: Math.max(maxX - minX, 10), height: Math.max(maxY - minY, 10) };
-    }
-    return {
-      x: el.x,
-      y: el.y,
-      width: el.width || 120,
-      height: el.height || 80,
-    };
-  }, []);
-
   // ─── Pointer Up ──────────────────────────────────────────────────────────
   const handlePointerUp = () => {
     setIsPointerDown(false);
+    setResizingState(null);
 
-    // Select items intersecting with Marquee Selection Box
-    if (selectionBox && (selectionBox.width > 3 || selectionBox.height > 3)) {
+    if (selectionBox) {
       const selectedIds = elements
         .filter((el) => {
-          const bounds = getElementBounds(el);
+          const bounds = {
+            x: el.x,
+            y: el.y,
+            width: el.width || 50,
+            height: el.height || 50,
+          };
           return (
             bounds.x < selectionBox.x + selectionBox.width &&
             bounds.x + bounds.width > selectionBox.x &&
@@ -317,7 +337,6 @@ export function Canvas({
       }
       let finalElement = { ...currentElement };
 
-      // Ensure minimum dimensions if created via single-click
       if (finalElement.type === "rect" && (finalElement.width < 10 || finalElement.height < 10)) {
         finalElement.width = 140;
         finalElement.height = 90;
@@ -340,10 +359,87 @@ export function Canvas({
     }
   };
 
+  // ─── Element Direct Click & Drag Handler ─────────────────────────────────
+  const handleElementSelect = (id, isShift, pointerEvent) => {
+    const coords = getCanvasCoordinates(pointerEvent);
+    setIsPointerDown(true);
+    setDragStart(coords);
+
+    if (isShift) {
+      setSelectedElementIds(
+        selectedElementIds.includes(id)
+          ? selectedElementIds.filter((i) => i !== id)
+          : [...selectedElementIds, id]
+      );
+    } else {
+      setSelectedElementIds([id]);
+    }
+  };
+
+  const handleResizeStart = (id, handle, pointerEvent) => {
+    const coords = getCanvasCoordinates(pointerEvent);
+    const el = elements.find((item) => item.id === id);
+    if (el) {
+      setIsPointerDown(true);
+      setResizingState({
+        id,
+        handle,
+        initialPos: { x: coords.x, y: coords.y, width: el.width || 100, height: el.height || 100, elX: el.x, elY: el.y },
+      });
+    }
+  };
+
+  // ─── Customization Toolbar Handlers ─────────────────────────────────────
+  const handleChangeColor = (color) => {
+    if (!canEdit || selectedElementIds.length === 0) return;
+    selectedElementIds.forEach((id) => {
+      const el = elements.find((item) => item.id === id);
+      if (el) {
+        const updated = {
+          ...el,
+          data: {
+            ...el.data,
+            strokeColor: color,
+            fillColor: el.type === "sticky" ? color : el.data?.fillColor || color,
+            bgColor: color,
+          },
+        };
+        upsertElement(updated);
+        emitElementUpdate?.(updated);
+      }
+    });
+    setShowColorPicker(false);
+    toast.success("Color updated");
+  };
+
+  const handleDuplicate = () => {
+    if (!canEdit || selectedElementIds.length === 0) return;
+    const newIds = [];
+    selectedElementIds.forEach((id) => {
+      const el = elements.find((item) => item.id === id);
+      if (el) {
+        const dupId = `el_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        const dup = { ...el, id: dupId, x: el.x + 30, y: el.y + 30 };
+        upsertElement(dup);
+        emitElementUpdate?.(dup);
+        newIds.push(dupId);
+      }
+    });
+    setSelectedElementIds(newIds);
+    toast.success(`Duplicated ${newIds.length} item(s)`);
+  };
+
+  const handleDeleteSelected = () => {
+    if (!canEdit || selectedElementIds.length === 0) return;
+    deleteElements(selectedElementIds);
+    emitElementDelete?.(selectedElementIds);
+    setSelectedElementIds([]);
+    toast.success("Deleted selected item(s)");
+  };
+
   // ─── Zoom with Mouse Wheel ───────────────────────────────────────────────
   const handleWheel = (e) => {
     e.preventDefault();
-
     const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
     const newZoom = Math.min(Math.max(viewport.zoom * zoomFactor, 0.2), 3);
     if (newZoom === viewport.zoom) return;
@@ -353,7 +449,6 @@ export function Canvas({
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Zoom towards mouse cursor focal point
     const newX = clientX - (clientX - viewport.x) * (newZoom / viewport.zoom);
     const newY = clientY - (clientY - viewport.y) * (newZoom / viewport.zoom);
 
@@ -364,13 +459,12 @@ export function Canvas({
     });
   };
 
-  // ─── Keyboard Shortcuts (Delete, Undo, Redo) ─────────────────────────────
+  // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
       if (!canEdit) return;
 
-      // Undo: Ctrl+Z / Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();
         const prev = undo();
@@ -378,7 +472,6 @@ export function Canvas({
         return;
       }
 
-      // Redo: Ctrl+Y / Cmd+Shift+Z / Cmd+Y
       if (
         ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") ||
         ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z")
@@ -389,10 +482,10 @@ export function Canvas({
         return;
       }
 
-      // Delete selected elements
       if ((e.key === "Delete" || e.key === "Backspace") && selectedElementIds.length > 0) {
         deleteElements(selectedElementIds);
         emitElementDelete?.(selectedElementIds);
+        setSelectedElementIds([]);
       }
     };
 
@@ -405,6 +498,82 @@ export function Canvas({
       className="w-full h-full relative overflow-hidden bg-[#0e0e11] select-none cursor-crosshair font-sans"
       onWheel={handleWheel}
     >
+      {/* ── Floating Selection Customization Bar ─────────────────────────────── */}
+      <AnimatePresence>
+        {selectedElementIds.length > 0 && canEdit && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#ffffff] border border-[#E8E9F0] shadow-xl shadow-black/10 select-none font-sans"
+          >
+            <span className="text-xs font-bold text-[#0F0F1A] px-2 py-1 bg-[#F3F4F6] rounded-lg">
+              {selectedElementIds.length} {selectedElementIds.length === 1 ? "item" : "items"} selected
+            </span>
+
+            <div className="w-px h-4 bg-[#E5E7EB]" />
+
+            {/* Color Swatch Picker */}
+            <div className="relative">
+              <button
+                onClick={() => setShowColorPicker((v) => !v)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium text-[#374151] hover:bg-[#F3F4F6] transition-colors"
+                title="Customize color"
+              >
+                <Palette className="w-3.5 h-3.5 text-[#6D5EF7]" />
+                Color
+              </button>
+
+              {showColorPicker && (
+                <div className="absolute top-full left-0 mt-2 p-2 rounded-xl bg-[#ffffff] border border-[#E8E9F0] shadow-xl grid grid-cols-5 gap-1.5 z-50 min-w-[140px]">
+                  {PALETTE_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => handleChangeColor(c)}
+                      className="w-6 h-6 rounded-full border border-black/10 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Duplicate */}
+            <button
+              onClick={handleDuplicate}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-[#374151] hover:bg-[#F3F4F6] transition-colors"
+              title="Duplicate (Ctrl+D)"
+            >
+              <Copy className="w-3.5 h-3.5 text-[#3B82F6]" />
+              Duplicate
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-[#EF4444] hover:bg-[#FEE2E2] transition-colors"
+              title="Delete (Del)"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-[#EF4444]" />
+              Delete
+            </button>
+
+            <div className="w-px h-4 bg-[#E5E7EB]" />
+
+            {/* Ask AI shortcut on selection */}
+            <button
+              onClick={toggleAI}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#6D5EF7] bg-[#EDE9FE] hover:bg-[#C4B5FD] transition-colors"
+              title="Ask AI to modify selection"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#6D5EF7]" />
+              AI Edit
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <svg
         ref={svgRef}
         className="w-full h-full absolute inset-0 touch-none"
@@ -412,7 +581,6 @@ export function Canvas({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {/* Infinite Dot Grid Pattern */}
         <defs>
           <pattern
             id="dot-grid"
@@ -427,26 +595,15 @@ export function Canvas({
 
         <rect id="grid-bg" width="100%" height="100%" fill="url(#dot-grid)" />
 
-        {/* Canvas World Viewport Transform */}
         <g transform={`translate(${viewport.x}, ${viewport.y}) scale(${viewport.zoom})`}>
-          {/* Render All Canvas Elements */}
           {elements.map((el) => (
             <CanvasElement
               key={el.id}
               element={el}
               isSelected={selectedElementIds.includes(el.id)}
               isReadOnly={!canEdit}
-              onSelect={(id, isShift) => {
-                if (isShift) {
-                  setSelectedElementIds(
-                    selectedElementIds.includes(id)
-                      ? selectedElementIds.filter((i) => i !== id)
-                      : [...selectedElementIds, id]
-                  );
-                } else {
-                  setSelectedElementIds([id]);
-                }
-              }}
+              onSelect={handleElementSelect}
+              onResizeStart={handleResizeStart}
               onUpdate={(updatedEl) => {
                 if (!canEdit) return;
                 upsertElement(updatedEl);
@@ -455,7 +612,6 @@ export function Canvas({
             />
           ))}
 
-          {/* Marquee Selection Box Overlay */}
           {selectionBox && (
             <rect
               x={selectionBox.x}
@@ -470,7 +626,6 @@ export function Canvas({
             />
           )}
 
-          {/* Active Creating Element Preview */}
           {currentElement && (
             <CanvasElement
               element={currentElement}
@@ -480,7 +635,6 @@ export function Canvas({
             />
           )}
 
-          {/* Multi-User Real-time Cursors */}
           {Object.entries(cursors).map(([userId, cursor]) => (
             <g key={userId} transform={`translate(${cursor.x}, ${cursor.y})`} className="pointer-events-none transition-transform duration-75">
               <path

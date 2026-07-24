@@ -1,6 +1,18 @@
 import * as aiService from './ai.service.js';
 import { ApiResponse } from '../../core/utils/ApiResponse.js';
 
+export const processAgentRequest = async (req, res) => {
+  const result = await aiService.processAgentRequest(
+    req.params.boardId,
+    req.user._id,
+    req.body.prompt,
+    req.body.selectedElementIds || [],
+    req.body.conversationHistory || []
+  );
+  res.status(200).json(
+    new ApiResponse(200, result, 'Agent request processed')
+  );
+};
 
 export const brainstorm = async (req, res) => {
   const ideas = await aiService.brainstorm(
@@ -13,7 +25,6 @@ export const brainstorm = async (req, res) => {
   );
 };
 
-
 export const generateDiagram = async (req, res) => {
   const diagram = await aiService.generateDiagram(
     req.params.boardId,
@@ -25,7 +36,6 @@ export const generateDiagram = async (req, res) => {
   );
 };
 
-
 export const summariseBoard = async (req, res) => {
   const summary = await aiService.summariseBoard(
     req.params.boardId,
@@ -35,7 +45,6 @@ export const summariseBoard = async (req, res) => {
     new ApiResponse(200, summary, 'Board summary generated')
   );
 };
-
 
 export const improveText = async (req, res) => {
   const result = await aiService.improveText(

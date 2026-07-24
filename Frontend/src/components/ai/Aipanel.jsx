@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { aiApi } from "@/api/ai.api";
-import { AI_FEATURES } from "@/config/constants";
+import { aiApi } from "@/features/ai/api/Ai.api.js";
 import Button from "@/components/ui/Button";
 import styles from "./AIPanel.module.css";
+
+const AI_FEATURES = {
+  BRAINSTORM: "brainstorm",
+  DIAGRAM: "diagram",
+  SUMMARY: "summary",
+  IMPROVE: "improve",
+};
 
 // ─── Feature tab definitions ───────────────────────────────────────────────
 const TABS = [

@@ -1,538 +1,489 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useBoardStore } from "../store/Boardstore.js";
-import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
-import { aiApi } from "@/features/ai/api/Ai.api.js";
-import { X, Plus, Send, Sparkles, Loader2 } from "lucide-react";
+import { useAIWorkspace, PROMPT_CATEGORIES } from "@/features/ai/hooks/Useaiworkspace.js";
+import {
+  Sparkles, X, Plus, Send, Loader2, Copy, Check, ArrowRight,
+  Layers, Cpu, Database, Code, ShieldAlert, FileText, LayoutGrid, RotateCcw, Trash2
+} from "lucide-react";
 import toast from "react-hot-toast";
 
-/* ── Constants ────────────────────────────────────────────────── */
-const DOT_COLORS = ["#10B981", "#8B5CF6", "#F59E0B", "#3B82F6", "#EF4444", "#6D5EF7", "#EC4899"];
-const AVATAR_BG  = ["#6D5EF7", "#10B981", "#F59E0B", "#3B82F6", "#EF4444", "#8B5CF6", "#14B8A6"];
+/* ── Code block with 1-click Copy ───────────────────────────────── */
+function CodeBlock({ content }) {
+  const [copied, setCopied] = React.useState(false);
 
-/* ── Helpers ──────────────────────────────────────────────────── */
-
-/** Detect if a string looks like a code / schema block */
-const isCodeLike = (text) =>
-  /(\n {2,}|\t|[{}();]|SELECT |CREATE |INSERT |=>)/.test(text) ||
-  (text.includes("\n") && text.split("\n").some((l) => l.startsWith("  ")));
-
-/** Format AI response into segments: text paragraphs and code blocks */
-const parseResponse = (text) => {
-  if (!text) return [];
-  const lines = text.split("\n");
-  const segments = [];
-  let codeLines = [];
-  let textLines = [];
-
-  const flushText = () => {
-    if (textLines.length > 0) {
-      segments.push({ type: "text", content: textLines.join("\n").trim() });
-      textLines = [];
-    }
-  };
-  const flushCode = () => {
-    if (codeLines.length > 0) {
-      segments.push({ type: "code", content: codeLines.join("\n") });
-      codeLines = [];
-    }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    toast.success("Code copied!");
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  let inCode = false;
-  for (const line of lines) {
-    if (line.startsWith("```") || (line.startsWith("  ") && !inCode && codeLines.length === 0 && isCodeLike(text))) {
-      if (!inCode) { flushText(); inCode = true; }
-      if (!line.startsWith("```")) codeLines.push(line);
-    } else if (inCode && line.startsWith("```")) {
-      flushCode();
-      inCode = false;
-    } else if (inCode) {
-      codeLines.push(line);
-    } else {
-      textLines.push(line);
-    }
-  }
-  flushText();
-  flushCode();
-
-  // If nothing was split into code, check the whole block
-  if (segments.length === 1 && segments[0].type === "text" && isCodeLike(text)) {
-    return [{ type: "code", content: text }];
-  }
-
-  return segments.length > 0 ? segments : [{ type: "text", content: text }];
-};
-
-/* ── Avatar component ─────────────────────────────────────────── */
-function Avatar({ name = "U", size = 32, colorIndex = 0, src }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className="rounded-full object-cover flex-shrink-0"
-        style={{ width: size, height: size }}
-        onError={(e) => { e.target.style.display = "none"; }}
-      />
-    );
-  }
   return (
-    <div
-      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-      style={{
-        width: size, height: size,
-        backgroundColor: AVATAR_BG[colorIndex % AVATAR_BG.length],
-        fontSize: size * 0.38,
-      }}
-    >
-      {(name?.[0] || "U").toUpperCase()}
+    <div style={{
+      position: "relative",
+      backgroundColor: "#111118",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12,
+      padding: "12px 14px",
+      margin: "8px 0",
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      color: "#A5B4FC",
+      lineHeight: 1.6,
+      overflowX: "auto",
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+    }}>
+      <button
+        onClick={handleCopy}
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          padding: 5,
+          borderRadius: 6,
+          border: "none",
+          backgroundColor: "rgba(255,255,255,0.08)",
+          color: "#818CF8",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        title="Copy code"
+      >
+        {copied ? <Check style={{ width: 12, height: 12, color: "#34D399" }} /> : <Copy style={{ width: 12, height: 12 }} />}
+      </button>
+      {content}
     </div>
   );
 }
 
-/* ── User message bubble ──────────────────────────────────────── */
+/* ── User Bubble ────────────────────────────────────────────────── */
 function UserBubble({ content }) {
   return (
-    <div className="flex justify-center px-1 mb-3">
-      <div className="max-w-[88%] bg-[#6D5EF7] text-white text-[13px] leading-[1.55] rounded-2xl rounded-br-md px-4 py-3 shadow-sm shadow-[#6D5EF7]/20">
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{
+        maxWidth: "85%",
+        backgroundColor: "#6D5EF7",
+        color: "#ffffff",
+        fontSize: 13,
+        lineHeight: 1.5,
+        borderRadius: "16px 16px 4px 16px",
+        padding: "10px 14px",
+        boxShadow: "0 2px 8px rgba(109,94,247,0.25)",
+        wordBreak: "break-word",
+      }}>
         {content}
       </div>
     </div>
   );
 }
 
-/* ── AI response bubble ───────────────────────────────────────── */
-function AIBubble({ content, onInsert }) {
-  const segments = parseResponse(content);
+/* ── AI Response Bubble with Canvas Badges ───────────────────────── */
+function AIBubble({ msg, onInsert, onReRun }) {
+  const { content, summary, opResult, isError } = msg;
+
+  // Format code blocks vs text paragraphs
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(```[\s\S]*?```)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith("```") && part.endsWith("```")) {
+        const codeContent = part.slice(3, -3).replace(/^[a-zA-Z]+\n/, "").trim();
+        return <CodeBlock key={index} content={codeContent} />;
+      }
+      return (
+        <p key={index} style={{
+          fontSize: 13,
+          lineHeight: 1.55,
+          color: isError ? "#991B1B" : "#0F0F1A",
+          margin: "4px 0",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}>
+          {part}
+        </p>
+      );
+    });
+  };
 
   return (
-    <div className="mb-3 space-y-2">
-      {segments.map((seg, i) =>
-        seg.type === "code" ? (
-          <div
-            key={i}
-            className="mx-1 bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3 text-[12px] font-mono text-[#1F2937] leading-[1.7] overflow-x-auto whitespace-pre"
-          >
-            {seg.content}
+    <div style={{ marginBottom: 14 }}>
+      <div style={{
+        backgroundColor: isError ? "#FEE2E2" : "#F9FAFB",
+        border: isError ? "1px solid #FCA5A5" : "1px solid #E5E7EB",
+        borderRadius: "16px 16px 16px 4px",
+        padding: "12px 14px",
+      }}>
+        {/* Operation Summary Badge */}
+        {summary && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 11, fontWeight: 700, color: "#6D5EF7",
+            backgroundColor: "#EDE9FE", border: "1px solid #C4B5FD",
+            padding: "3px 8px", borderRadius: 8, marginBottom: 8,
+          }}>
+            <Layers style={{ width: 12, height: 12 }} />
+            {summary}
           </div>
-        ) : (
-          <p key={i} className="px-1 text-[13px] text-[#1F2937] leading-[1.6]">
-            {seg.content}
-          </p>
-        )
-      )}
+        )}
 
-      {/* Insert on board button */}
-      <div className="px-1 pt-1">
-        <button
-          onClick={() => onInsert(content)}
-          className="w-full py-2.5 bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-[13px] font-semibold rounded-xl transition-all shadow-sm shadow-[#6D5EF7]/25 active:scale-[0.98]"
-        >
-          Insert on board
-        </button>
-      </div>
-    </div>
-  );
-}
+        {renderFormattedText(content)}
 
-/* ── Thinking indicator ───────────────────────────────────────── */
-function ThinkingIndicator() {
-  return (
-    <div className="flex items-center gap-1.5 px-1 mb-3">
-      <Loader2 className="w-3.5 h-3.5 text-[#6D5EF7] animate-spin" />
-      <span className="text-[13px] text-[#6D5EF7] font-medium">AI is thinking...</span>
-    </div>
-  );
-}
-
-/* ── Collaborators section ────────────────────────────────────── */
-function CollaboratorsPanel({ activeUsers, board, currentUser }) {
-  const [showAll, setShowAll] = useState(false);
-
-  // Merge activeUsers (live) with board.members (static)
-  const liveIds = new Set(activeUsers.map((u) => u.userId));
-  const staticMembers = (board?.members || [])
-    .filter((m) => !liveIds.has(m.user?._id || m.user?.id))
-    .map((m, i) => ({
-      userId: m.user?._id || m.user?.id || `member_${i}`,
-      fullName: m.user?.fullName || m.email || "Member",
-      avatar: m.user?.avatar || null,
-      color: DOT_COLORS[(i + 2) % DOT_COLORS.length],
-      isLive: false,
-    }));
-
-  const allUsers = [
-    ...activeUsers.map((u, i) => ({ ...u, isLive: true, color: DOT_COLORS[i % DOT_COLORS.length] })),
-    ...staticMembers,
-  ];
-
-  const visible = showAll ? allUsers : allUsers.slice(0, 4);
-  const hiddenCount = allUsers.length - 4;
-
-  return (
-    <div className="bg-white rounded-2xl border border-[#E8E9F0] shadow-sm overflow-hidden">
-      <div className="px-4 py-3.5 border-b border-[#F0F1F5]">
-        <h3 className="text-[15px] font-bold text-[#0F0F1A]">Collaborators</h3>
-      </div>
-
-      <div className="px-4 py-2">
-        {allUsers.length === 0 ? (
-          <p className="py-3 text-[13px] text-[#9CA3AF] text-center">No collaborators yet</p>
-        ) : (
-          <>
-            {visible.map((u, i) => {
-              const isYou =
-                u.userId === (currentUser?._id || currentUser?.id) ||
-                u.fullName === currentUser?.fullName;
-
-              return (
-                <div
-                  key={u.userId || i}
-                  className="flex items-center gap-3 py-2.5"
-                >
-                  {/* Avatar */}
-                  <Avatar
-                    name={u.fullName}
-                    size={36}
-                    colorIndex={i}
-                    src={u.avatar || null}
-                  />
-
-                  {/* Name */}
-                  <span className="flex-1 text-[13px] font-semibold text-[#0F0F1A] truncate">
-                    {u.fullName}
-                    {isYou && (
-                      <span className="ml-1 text-[12px] font-normal text-[#6B7280]">(You)</span>
-                    )}
-                  </span>
-
-                  {/* Online dot */}
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: u.color || DOT_COLORS[i % DOT_COLORS.length] }}
-                  />
-                </div>
-              );
-            })}
-
-            {/* +N more row */}
-            {!showAll && hiddenCount > 0 && (
-              <div className="flex items-center gap-3 py-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#F0F1F8] border-2 border-white flex items-center justify-center text-[12px] font-bold text-[#4B4B6A] shadow-sm flex-shrink-0">
-                  +{hiddenCount}
-                </div>
-                <span className="flex-1 text-[13px] text-[#6B7280]">
-                  {hiddenCount} more
-                </span>
-                <button
-                  onClick={() => setShowAll(true)}
-                  className="text-[13px] font-semibold text-[#6D5EF7] hover:text-[#5B4CE0] transition-colors"
-                >
-                  View all
-                </button>
-              </div>
-            )}
-          </>
+        {!isError && (
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <button
+              onClick={() => onInsert(content)}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                borderRadius: 10,
+                border: "none",
+                backgroundColor: "#6D5EF7",
+                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                boxShadow: "0 2px 8px rgba(109,94,247,0.25)",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#5B4CE0"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#6D5EF7"; }}
+            >
+              Insert on board <ArrowRight style={{ width: 12, height: 12 }} />
+            </button>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-/* ── Main AI Sidebar ──────────────────────────────────────────── */
-export function AISidebar({ emitElementUpdate }) {
-  const { boardId } = useParams();
-  const { showAI, toggleAI, upsertElement, elements, activeUsers, board, role } = useBoardStore();
-  const { user: currentUser } = useAuthStore();
+/* ── Main AI Sidebar Component ─────────────────────────────────── */
+export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave }) {
+  const {
+    showAI,
+    toggleAI,
+    messages,
+    input,
+    setInput,
+    activeCategory,
+    setActiveCategory,
+    isProcessing,
+    streamingStep,
+    selectedElementIds,
+    handleSendPrompt,
+    handleClearChat,
+    handleInsertOnBoard,
+  } = useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanvasSave });
 
-  const canEdit = role === "owner" || role === "editor";
-
-  const [messages, setMessages] = useState([]);   // { role: "user"|"ai", content: string }
-  const [input, setInput] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Auto-scroll (Rules of Hooks: called unconditionally before returning null)
+  useEffect(() => {
+    if (!showAI) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isProcessing, showAI]);
+
   if (!showAI) return null;
 
-  // Auto-scroll on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isThinking]);
-
-  /* ── Send message handler ─────────────────────────────────── */
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || isThinking) return;
-
-    setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
-    setIsThinking(true);
-
-    try {
-      let responseText = "";
-
-      const lower = text.toLowerCase();
-
-      if (lower.includes("diagram") || lower.includes("flow") || lower.includes("chart") || lower.includes("architecture")) {
-        // Diagram generation
-        const res = await aiApi.generateDiagram(boardId, text);
-        const { nodes = [], edges = [] } = res.data.data || {};
-        const nodePosMap = {};
-
-        nodes.forEach((node, index) => {
-          const nodeId = node.id || `node_${Date.now()}_${index}`;
-          const posX = node.x > 0 ? node.x : 100 + (index % 3) * 220;
-          const posY = node.y > 0 ? node.y : 120 + Math.floor(index / 3) * 150;
-          nodePosMap[nodeId] = { x: posX, y: posY, width: 160, height: 80 };
-          const shapeEl = {
-            id: nodeId, type: "rect",
-            x: posX, y: posY, width: 160, height: 80,
-            data: { text: node.label || node.title || `Step ${index + 1}`, strokeColor: "#6D5EF7", fillColor: "#EDE9FE", borderRadius: 8 },
-          };
-          upsertElement(shapeEl);
-          emitElementUpdate?.(shapeEl);
-        });
-
-        edges.forEach((edge, index) => {
-          const source = nodePosMap[edge.from];
-          const target = nodePosMap[edge.to];
-          if (source && target) {
-            const arrowEl = {
-              id: `edge_${Date.now()}_${index}`, type: "arrow",
-              x: source.x + source.width, y: source.y + source.height / 2,
-              width: target.x - (source.x + source.width),
-              height: target.y - (source.y + source.height / 2),
-              data: { strokeColor: "#6D5EF7", strokeWidth: 2 },
-            };
-            upsertElement(arrowEl);
-            emitElementUpdate?.(arrowEl);
-          }
-        });
-
-        responseText = `Flowchart generated with ${nodes.length} nodes and ${edges.length} connections. Check your canvas!`;
-
-      } else if (lower.includes("summarize") || lower.includes("summary") || lower.includes("overview")) {
-        if (elements.length === 0) {
-          responseText = "Your board is empty. Add some elements first, then ask me to summarize!";
-        } else {
-          const res = await aiApi.summarize(boardId);
-          const data = res.data.data || {};
-          const parts = [];
-          if (data.title) parts.push(data.title);
-          if (data.overview) parts.push(data.overview);
-          if (data.keyPoints?.length > 0) {
-            parts.push("Key Points:\n" + data.keyPoints.map((p) => `• ${p}`).join("\n"));
-          }
-          if (data.nextSteps?.length > 0) {
-            parts.push("Next Steps:\n" + data.nextSteps.map((s) => `→ ${s}`).join("\n"));
-          }
-          responseText = parts.join("\n\n");
-        }
-
-      } else {
-        // General brainstorm / ask anything
-        const res = await aiApi.brainstorm(boardId, text);
-        const ideas = res.data.data?.ideas || res.data.data || [];
-
-        if (Array.isArray(ideas) && ideas.length > 0) {
-          const COLORS = ["#fef08a", "#bae6fd", "#bbf7d0", "#fbcfe8", "#e9d5ff"];
-          ideas.forEach((idea, index) => {
-            const sticky = {
-              id: `ai_sticky_${Date.now()}_${index}`,
-              type: "sticky",
-              x: 100 + (index % 3) * 190,
-              y: 100 + Math.floor(index / 3) * 190,
-              width: 160, height: 160,
-              data: {
-                text: typeof idea === "string" ? idea : `${idea.title || ""}\n${idea.description || ""}`.trim(),
-                bgColor: idea.color || COLORS[index % COLORS.length],
-                textColor: "#1e293b",
-              },
-            };
-            upsertElement(sticky);
-            emitElementUpdate?.(sticky);
-          });
-
-          responseText =
-            "Here are the ideas I generated:\n\n" +
-            ideas
-              .map((idea, i) =>
-                `${i + 1}. ${typeof idea === "string" ? idea : (idea.title || `Idea ${i + 1}`)}`
-              )
-              .join("\n");
-        } else {
-          responseText = "I've processed your request! The results have been placed on the canvas.";
-        }
-      }
-
-      setMessages((prev) => [...prev, { role: "ai", content: responseText }]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", content: "Sorry, I couldn't process that. Please try again.", isError: true },
-      ]);
-      toast.error("AI request failed");
-    } finally {
-      setIsThinking(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  };
-
-  /* ── Insert AI message content onto canvas ─────────────────── */
-  const handleInsertOnBoard = (content) => {
-    if (!canEdit) {
-      toast.error("You have view-only access to this board");
-      return;
-    }
-    const sticky = {
-      id: `ai_insert_${Date.now()}`,
-      type: "sticky",
-      x: 180 + Math.random() * 60,
-      y: 180 + Math.random() * 60,
-      width: 240, height: 200,
-      data: { text: content.slice(0, 500), bgColor: "#e9d5ff", textColor: "#1e293b" },
-    };
-    upsertElement(sticky);
-    emitElementUpdate?.(sticky);
-    toast.success("Inserted on board!");
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  /* Card styling — 100% matched to MembersSidebar.jsx */
+  const card = {
+    position: "fixed", right: 16, top: 64, zIndex: 40,
+    width: 340, height: "calc(100vh - 80px)", maxHeight: 640,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    border: "1px solid #E8E9F0",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+    display: "flex", flexDirection: "column",
+    fontFamily: "Inter, system-ui, sans-serif",
+    overflow: "hidden",
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 320 }}
+    <motion.aside
+      initial={{ opacity: 0, x: 340 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 320 }}
+      exit={{ opacity: 0, x: 340 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed right-4 top-16 z-40 w-[320px] flex flex-col gap-3 max-h-[calc(100vh-80px)]"
+      style={card}
     >
-      {/* ── AI Assistant Card ───────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[#E8E9F0] shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 260px)", minHeight: "320px" }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#F0F1F5] flex-shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[15px] font-extrabold text-[#6D5EF7]">AI</span>
-            <span className="text-[15px] font-extrabold text-[#0F0F1A]">Assistant</span>
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div style={{
+        padding: "14px 18px",
+        borderBottom: "1px solid #F0F1F5",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            backgroundColor: "#EDE9FE",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <Sparkles style={{ width: 16, height: 16, color: "#6D5EF7" }} />
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setMessages([])}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6B7280] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] transition-colors"
-              title="New conversation"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-            <button
-              onClick={toggleAI}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6B7280] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
-              <div className="w-10 h-10 rounded-xl bg-[#6D5EF7]/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-[#6D5EF7]" />
-              </div>
-              <div className="text-center">
-                <p className="text-[13px] font-semibold text-[#0F0F1A]">Ask me anything</p>
-                <p className="text-[12px] text-[#9CA3AF] mt-1 max-w-[200px]">
-                  Brainstorm ideas, generate diagrams, or summarize your board
-                </p>
-              </div>
-              {/* Suggestion chips */}
-              <div className="flex flex-wrap gap-1.5 justify-center mt-1">
-                {["Generate schema", "Create a diagram", "Summarize board"].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setInput(s)}
-                    className="text-[11px] px-2.5 py-1 rounded-full bg-[#F3F4F6] text-[#4B4B6A] hover:bg-[#EDE9FE] hover:text-[#6D5EF7] border border-[#E5E7EB] hover:border-[#6D5EF7]/30 transition-all font-medium"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>
+                Gemini Agent
+              </h2>
+              {selectedElementIds.length > 0 && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#6D5EF7", backgroundColor: "#EDE9FE", padding: "1px 6px", borderRadius: 999 }}>
+                  {selectedElementIds.length} selected
+                </span>
+              )}
             </div>
-          )}
-
-          <AnimatePresence initial={false}>
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.18 }}
-              >
-                {msg.role === "user" ? (
-                  <UserBubble content={msg.content} />
-                ) : (
-                  <AIBubble content={msg.content} onInsert={handleInsertOnBoard} />
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {isThinking && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <ThinkingIndicator />
-            </motion.div>
-          )}
-
-          <div ref={messagesEndRef} />
+            <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0, marginTop: 1 }}>
+              Board architect & collaborator
+            </p>
+          </div>
         </div>
 
-        {/* Input */}
-        <div className="flex-shrink-0 border-t border-[#F0F1F5] px-3 py-2.5 flex items-center gap-2 bg-white">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything..."
-            className="flex-1 text-[13px] text-[#0F0F1A] placeholder-[#9CA3AF] bg-transparent outline-none"
-            disabled={isThinking}
-          />
+        {/* Action icons */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <button
-            onClick={handleSend}
-            disabled={!input.trim() || isThinking}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6D5EF7] hover:bg-[#EDE9FE] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Send"
+            onClick={handleClearChat}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              border: "none", backgroundColor: "transparent",
+              cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", color: "#9CA3AF",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#F3F4F6"; e.currentTarget.style.color = "#374151"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
+            title="Clear Chat"
           >
-            {isThinking ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              /* Paper plane icon */
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            )}
+            <Trash2 style={{ width: 15, height: 15 }} />
+          </button>
+          <button
+            onClick={toggleAI}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              border: "none", backgroundColor: "transparent",
+              cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", color: "#9CA3AF",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#F3F4F6"; e.currentTarget.style.color = "#374151"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
+            title="Close"
+          >
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
       </div>
 
-      {/* ── Collaborators Card ──────────────────────────────── */}
-      <CollaboratorsPanel
-        activeUsers={activeUsers}
-        board={board}
-        currentUser={currentUser}
-      />
-    </motion.div>
+      {/* ── Category Quick Filter Chips ─────────────────────────── */}
+      <div style={{
+        padding: "10px 14px",
+        borderBottom: "1px solid #F0F1F5",
+        display: "flex", gap: 6, overflowX: "auto", flexShrink: 0,
+        scrollbarWidth: "none",
+      }}>
+        {PROMPT_CATEGORIES.map((cat) => {
+          const isActive = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setActiveCategory(cat.id);
+                if (cat.prompt) handleSendPrompt(cat.prompt);
+              }}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                padding: "4px 10px",
+                borderRadius: 999,
+                border: isActive ? "1px solid #C4B5FD" : "1px solid #E5E7EB",
+                backgroundColor: isActive ? "#EDE9FE" : "#F9FAFB",
+                color: isActive ? "#6D5EF7" : "#4B4B6A",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {cat.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Streaming / Processing Step Banner ──────────────────── */}
+      {streamingStep && (
+        <div style={{
+          padding: "8px 16px",
+          backgroundColor: "#EDE9FE",
+          borderBottom: "1px solid #C4B5FD",
+          display: "flex", alignItems: "center", gap: 8,
+          fontSize: 12, fontWeight: 700, color: "#6D5EF7",
+          flexShrink: 0,
+        }}>
+          <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+          <span>{streamingStep}</span>
+        </div>
+      )}
+
+      {/* ── Messages List ───────────────────────────────────────── */}
+      <div style={{
+        flex: 1, overflowY: "auto", overflowX: "hidden",
+        padding: "16px 16px 6px",
+        display: "flex", flexDirection: "column",
+      }}>
+        {messages.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, padding: "20px 0", textAlign: "center" }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%",
+              backgroundColor: "#EDE9FE",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 2px",
+            }}>
+              <Sparkles style={{ width: 20, height: 20, color: "#6D5EF7" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>Board AI Agent</p>
+              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4, margin: "4px 0 0", maxWidth: 240 }}>
+                Ask me to edit the board, create architecture diagrams, roadmaps, generate code, or review your design.
+              </p>
+            </div>
+
+            {/* Default Quick Actions */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 6 }}>
+              {[
+                "Microservice Architecture",
+                "Fullstack Roadmap",
+                "Create red sticky note 'Review API'",
+                "Summarize board",
+              ].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleSendPrompt(s)}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "6px 12px",
+                    borderRadius: 999,
+                    backgroundColor: "#F3F4F6",
+                    color: "#374151",
+                    border: "1px solid #E5E7EB",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#EDE9FE";
+                    e.currentTarget.style.color = "#6D5EF7";
+                    e.currentTarget.style.borderColor = "#C4B5FD";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F3F4F6";
+                    e.currentTarget.style.color = "#374151";
+                    e.currentTarget.style.borderColor = "#E5E7EB";
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {msg.role === "user" ? (
+                  <UserBubble content={msg.content} />
+                ) : (
+                  <AIBubble
+                    msg={msg}
+                    onInsert={handleInsertOnBoard}
+                    onReRun={() => handleSendPrompt(msg.content)}
+                  />
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+
+        <div ref={messagesEndRef} style={{ height: 4 }} />
+      </div>
+
+      {/* ── Input Footer ─────────────────────────────────────────── */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); handleSendPrompt(); }}
+        style={{
+          padding: "14px 18px",
+          borderTop: "1px solid #F0F1F5",
+          backgroundColor: "#ffffff",
+          display: "flex", alignItems: "center", gap: 8,
+          flexShrink: 0,
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Command agent or ask anything…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={isProcessing}
+          style={{
+            flex: 1,
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid #E5E7EB",
+            backgroundColor: "#F9FAFB",
+            color: "#0F0F1A",
+            fontSize: 13,
+            outline: "none",
+            fontFamily: "inherit",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "#6D5EF7";
+            e.target.style.backgroundColor = "#ffffff";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#E5E7EB";
+            e.target.style.backgroundColor = "#F9FAFB";
+          }}
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || isProcessing}
+          style={{
+            width: 38, height: 38,
+            borderRadius: 12,
+            backgroundColor: input.trim() && !isProcessing ? "#6D5EF7" : "#E5E7EB",
+            color: input.trim() && !isProcessing ? "#ffffff" : "#9CA3AF",
+            border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: input.trim() && !isProcessing ? "pointer" : "not-allowed",
+            flexShrink: 0,
+            transition: "all 0.2s",
+            boxShadow: input.trim() && !isProcessing ? "0 2px 8px rgba(109,94,247,0.25)" : "none",
+          }}
+          onMouseEnter={(e) => { if (input.trim() && !isProcessing) e.currentTarget.style.backgroundColor = "#5B4CE0"; }}
+          onMouseLeave={(e) => { if (input.trim() && !isProcessing) e.currentTarget.style.backgroundColor = "#6D5EF7"; }}
+        >
+          {isProcessing ? (
+            <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+          ) : (
+            <Send style={{ width: 14, height: 14 }} />
+          )}
+        </button>
+      </form>
+    </motion.aside>
   );
 }
 

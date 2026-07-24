@@ -3,7 +3,7 @@
  *
  * Manages the Socket.io collaboration connection lifecycle.
  * Connects once when the user is authenticated, disconnects on logout.
- * Returns the socket instance for use in other hooks.
+ * Keeps the connection persistent across route changes.
  */
 
 import { useEffect } from "react";
@@ -15,18 +15,25 @@ import { useSocketStore } from "../store/Socketstore.js";
 export const useSocket = () => {
   const token = useAuthStore((s) => s.token);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { socket, setSocket, setConnected } = useSocketStore();
+  const { setSocket, setConnected, disconnect } = useSocketStore();
 
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    // If not authenticated or logged out, disconnect existing socket
+    if (!isAuthenticated || !token) {
+      disconnect();
+      return;
+    }
 
-    // Don't create a second connection if one already exists
-    if (socket?.connected) return;
+    const currentSocket = useSocketStore.getState().socket;
+    // Don't create a new connection if socket is already active and connected
+    if (currentSocket && (currentSocket.connected || currentSocket.connecting)) {
+      return;
+    }
 
     const newSocket = io(`${SOCKET_URL}/collaboration`, {
       auth: { token },
-      transports: ["polling", "websocket"],
-      reconnectionAttempts: 5,
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });
 
@@ -34,20 +41,19 @@ export const useSocket = () => {
       setConnected(true);
     });
 
-    newSocket.on("disconnect", () => {
+    newSocket.on("disconnect", (reason) => {
       setConnected(false);
     });
 
     newSocket.on("connect_error", (err) => {
-      console.error("Socket collaboration connection error:", err.message);
+      console.warn("Collaboration socket connect error:", err.message);
     });
 
     setSocket(newSocket);
 
-    return () => {
-      newSocket.disconnect();
-    };
-  }, [isAuthenticated, token]);
+    // Note: Do NOT disconnect on component unmount (route change).
+    // The socket should remain active while the user stays authenticated.
+  }, [isAuthenticated, token, setSocket, setConnected, disconnect]);
 
   return useSocketStore((s) => s.socket);
 };

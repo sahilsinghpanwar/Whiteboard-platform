@@ -46,7 +46,7 @@ export const useChat = (boardId) => {
 
     const chatSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token },
-      transports: ["polling", "websocket"],
+      transports: ["websocket", "polling"],
       reconnectionAttempts: 5,
     });
 
