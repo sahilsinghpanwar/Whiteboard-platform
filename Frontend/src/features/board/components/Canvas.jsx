@@ -24,6 +24,7 @@ export function Canvas({
     selectedElementIds,
     setSelectedElementIds,
     activeTool,
+    setActiveTool,
     activeShape,
     viewport,
     setViewport,
@@ -168,6 +169,7 @@ export function Canvas({
       upsertElement(newStickyElement);
       setSelectedElementIds([newStickyElement.id]);
       emitElementUpdate?.(newStickyElement);
+      setActiveTool(CANVAS_TOOLS.SELECT); // Automatically switch to Select tool so user can immediately move, adjust, or double click to type!
       return;
     }
 
@@ -188,6 +190,7 @@ export function Canvas({
       upsertElement(newTextElement);
       setSelectedElementIds([newTextElement.id]);
       emitElementUpdate?.(newTextElement);
+      setActiveTool(CANVAS_TOOLS.SELECT); // Switch to Select tool
       return;
     }
   };
@@ -222,15 +225,15 @@ export function Canvas({
         const dx = coords.x - initialPos.x;
         const dy = coords.y - initialPos.y;
 
-        if (handle.includes("e")) newWidth = Math.max(initialPos.width + dx, 20);
-        if (handle.includes("s")) newHeight = Math.max(initialPos.height + dy, 20);
+        if (handle.includes("e")) newWidth = Math.max(initialPos.width + dx, 30);
+        if (handle.includes("s")) newHeight = Math.max(initialPos.height + dy, 30);
         if (handle.includes("w")) {
-          const w = Math.max(initialPos.width - dx, 20);
+          const w = Math.max(initialPos.width - dx, 30);
           newX = initialPos.x + (initialPos.width - w);
           newWidth = w;
         }
         if (handle.includes("n")) {
-          const h = Math.max(initialPos.height - dy, 20);
+          const h = Math.max(initialPos.height - dy, 30);
           newY = initialPos.y + (initialPos.height - h);
           newHeight = h;
         }
@@ -356,6 +359,7 @@ export function Canvas({
       emitElementUpdate?.(finalElement);
       setSelectedElementIds([finalElement.id]);
       setCurrentElement(null);
+      setActiveTool(CANVAS_TOOLS.SELECT); // Switch to select tool after drawing shape
     }
   };
 
@@ -384,7 +388,7 @@ export function Canvas({
       setResizingState({
         id,
         handle,
-        initialPos: { x: coords.x, y: coords.y, width: el.width || 100, height: el.height || 100, elX: el.x, elY: el.y },
+        initialPos: { x: coords.x, y: coords.y, width: el.width || 160, height: el.height || 160, elX: el.x, elY: el.y },
       });
     }
   };

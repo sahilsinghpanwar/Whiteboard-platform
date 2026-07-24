@@ -63,20 +63,20 @@ export function CanvasElement({
           rx={6}
           fill="none"
           stroke="#6D5EF7"
-          strokeWidth={1.5}
+          strokeWidth={2}
           strokeDasharray="4 4"
         />
 
-        {/* Handles */}
+        {/* Corner Handles */}
         {handles.map((h) => (
           <circle
             key={h.id}
             cx={h.cx}
             cy={h.cy}
-            r={5}
+            r={6}
             fill="#ffffff"
             stroke="#6D5EF7"
-            strokeWidth={2}
+            strokeWidth={2.5}
             style={{ cursor: h.cursor }}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -94,7 +94,7 @@ export function CanvasElement({
     const imageUrl = element.data?.url || element.data?.src;
 
     return (
-      <g onPointerDown={handlePointerDown}>
+      <g onPointerDown={handlePointerDown} style={{ cursor: "move" }}>
         <image
           x={x}
           y={y}
@@ -119,7 +119,7 @@ export function CanvasElement({
     }, "");
 
     return (
-      <g onPointerDown={handlePointerDown}>
+      <g onPointerDown={handlePointerDown} style={{ cursor: "move" }}>
         <path
           d={pathData}
           fill="none"
@@ -149,7 +149,7 @@ export function CanvasElement({
     const rx = element.data?.borderRadius || 8;
 
     return (
-      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
         <rect
           x={x}
           y={y}
@@ -163,7 +163,13 @@ export function CanvasElement({
         />
         {/* Inline Label / Text */}
         {(textValue || isEditing) && (
-          <foreignObject x={x + 8} y={y + 8} width={Math.max(width - 16, 20)} height={Math.max(height - 16, 20)}>
+          <foreignObject
+            x={x + 8}
+            y={y + 8}
+            width={Math.max(width - 16, 20)}
+            height={Math.max(height - 16, 20)}
+            style={{ pointerEvents: isEditing ? "auto" : "none" }}
+          >
             {isEditing ? (
               <textarea
                 ref={textareaRef}
@@ -180,7 +186,7 @@ export function CanvasElement({
               />
             ) : (
               <div
-                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden pointer-events-none"
+                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden"
                 style={{ color: element.data?.textColor || strokeColor }}
               >
                 {textValue}
@@ -202,7 +208,7 @@ export function CanvasElement({
     const cy = y + ry;
 
     return (
-      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
         <ellipse
           cx={cx}
           cy={cy}
@@ -214,7 +220,13 @@ export function CanvasElement({
           opacity={opacity}
         />
         {(textValue || isEditing) && (
-          <foreignObject x={x + 10} y={y + 10} width={Math.max(width - 20, 20)} height={Math.max(height - 20, 20)}>
+          <foreignObject
+            x={x + 10}
+            y={y + 10}
+            width={Math.max(width - 20, 20)}
+            height={Math.max(height - 20, 20)}
+            style={{ pointerEvents: isEditing ? "auto" : "none" }}
+          >
             {isEditing ? (
               <textarea
                 ref={textareaRef}
@@ -231,7 +243,7 @@ export function CanvasElement({
               />
             ) : (
               <div
-                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden pointer-events-none"
+                className="w-full h-full flex items-center justify-center text-center font-sans text-sm font-medium overflow-hidden"
                 style={{ color: element.data?.textColor || strokeColor }}
               >
                 {textValue}
@@ -251,7 +263,7 @@ export function CanvasElement({
     const y2 = y + height;
 
     return (
-      <g onPointerDown={handlePointerDown}>
+      <g onPointerDown={handlePointerDown} style={{ cursor: "move" }}>
         <line
           x1={x}
           y1={y}
@@ -299,17 +311,23 @@ export function CanvasElement({
     const stickyTextColor = element.data?.textColor || "#1e293b";
 
     return (
-      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
         <rect
           x={x}
           y={y}
-          width={width}
-          height={height}
+          width={Math.max(width, 40)}
+          height={Math.max(height, 40)}
           rx={6}
           fill={stickyBg}
           style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25))" }}
         />
-        <foreignObject x={x + 12} y={y + 12} width={width - 24} height={height - 24}>
+        <foreignObject
+          x={x + 12}
+          y={y + 12}
+          width={Math.max(width - 24, 20)}
+          height={Math.max(height - 24, 20)}
+          style={{ pointerEvents: isEditing ? "auto" : "none" }}
+        >
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -334,7 +352,7 @@ export function CanvasElement({
             </div>
           )}
         </foreignObject>
-        {renderResizeHandles(x, y, width, height)}
+        {renderResizeHandles(x, y, Math.max(width, 40), Math.max(height, 40))}
       </g>
     );
   }
@@ -345,8 +363,14 @@ export function CanvasElement({
     const fontSize = element.data?.fontSize || 18;
 
     return (
-      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
-        <foreignObject x={x} y={y} width={width} height={height}>
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
+        <foreignObject
+          x={x}
+          y={y}
+          width={Math.max(width, 20)}
+          height={Math.max(height, 20)}
+          style={{ pointerEvents: isEditing ? "auto" : "none" }}
+        >
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -371,7 +395,7 @@ export function CanvasElement({
             </div>
           )}
         </foreignObject>
-        {renderResizeHandles(x, y, width, height)}
+        {renderResizeHandles(x, y, Math.max(width, 20), Math.max(height, 20))}
       </g>
     );
   }
