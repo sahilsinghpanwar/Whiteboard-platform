@@ -12,7 +12,7 @@ const AI_FEATURES = {
   IMPROVE: "improve",
 };
 
-// ─── Feature tab definitions ───────────────────────────────────────────────
+//  Feature tab definitions 
 const TABS = [
   {
     id: AI_FEATURES.BRAINSTORM,
@@ -57,7 +57,7 @@ const TABS = [
   },
 ];
 
-// ─── Result renderers per feature ─────────────────────────────────────────
+
 const BrainstormResult = ({ data }) => (
   <div className={styles.resultList}>
     {data.ideas?.map((idea, i) => (
@@ -140,7 +140,7 @@ const ImproveResult = ({ data }) => (
   </div>
 );
 
-// ─── AIPanel ───────────────────────────────────────────────────────────────
+//  AIPanel 
 const AIPanel = ({ boardId }) => {
   const [activeTab, setActiveTab] = useState(AI_FEATURES.BRAINSTORM);
   const [input, setInput] = useState("");
