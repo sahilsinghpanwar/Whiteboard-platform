@@ -75,32 +75,32 @@ const BoardPage = () => {
 
   return (
     <div className={styles.page}>
-      {/* Top navigation bar */}
+      
       <BoardTopbar boardId={boardId} />
 
-      {/* Canvas area */}
+  
       <div className={styles.workspace}>
-        {/* Floating left toolbar */}
+    
         {canEdit && <CanvasToolbar />}
 
-        {/* The canvas itself */}
+        
         <WhiteboardCanvas
           onElementUpdate={emitElementUpdate}
           onElementDelete={emitElementDelete}
           onCursorMove={emitCursorMove}
         />
 
-        {/* Multiplayer cursor overlay */}
+        
         <CursorOverlay />
 
-        {/* Right-side panels */}
+        
         <AnimatePresence>
           {showChat && <ChatPanel key="chat" boardId={boardId} />}
           {showAI && !showChat && <AIPanel key="ai" boardId={boardId} />}
         </AnimatePresence>
       </div>
 
-      {/* Keyboard shortcuts hint */}
+      
       <div className={styles.hint}>
         {canEdit && (
           <span>

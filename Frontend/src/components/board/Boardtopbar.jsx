@@ -137,7 +137,7 @@ const MembersModal = ({ boardId, board, role, isOpen, onClose }) => {
   );
 };
 
-//  BoardTopbar 
+
 const BoardTopbar = ({ boardId }) => {
   const navigate = useNavigate();
   const { board, role, activeUsers, toggleChat, toggleAI, showChat, showAI } =
