@@ -19,12 +19,12 @@ function PresenceAvatar({ user }) {
   const bg = user.color || AVATAR_COLORS[(user.userId?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
   return (
     <div
-      className="relative w-8 h-8 rounded-full border-2 border-[#141418] flex items-center justify-center text-xs font-bold text-white shadow-md cursor-default flex-shrink-0 transition-transform hover:scale-105"
+      className="relative w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-md cursor-default flex-shrink-0 transition-transform hover:scale-105"
       style={{ backgroundColor: bg }}
       title={user.fullName || "Collaborator"}
     >
       {(user.fullName?.[0] || "U").toUpperCase()}
-      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#141418]" />
+      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
     </div>
   );
 }
@@ -37,8 +37,8 @@ function NavBtn({ active, onClick, title: tip, children }) {
       title={tip}
       className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 relative group ${
         active
-          ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/30"
-          : "text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95"
+          ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/25"
+          : "text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] active:scale-95"
       }`}
     >
       {children}
@@ -62,62 +62,68 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
   const [title, setTitle] = useState(board?.title || "Untitled Board");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const exportRef = useRef(null);
 
-  /* Sync board title on store load */
   useEffect(() => {
     if (board?.title) setTitle(board.title);
   }, [board?.title]);
 
-  /* Close export dropdown on outside click */
+  // Click outside listener for export dropdown
   useEffect(() => {
-    const handler = (e) => {
+    const handleOutsideClick = (e) => {
       if (exportRef.current && !exportRef.current.contains(e.target)) {
         setShowExportMenu(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const handleTitleBlur = async () => {
     setIsEditingTitle(false);
     if (!title.trim() || title === board?.title) return;
     try {
-      await boardApi.update(boardId, { title });
+      await boardApi.updateTitle(boardId, title.trim());
       toast.success("Board renamed");
-    } catch (err) {
-      toast.error(err.message || "Failed to rename board");
+    } catch {
+      toast.error("Failed to rename board");
+      setTitle(board?.title || "Untitled Board");
     }
   };
 
-  const handleCopyLink = () => {
+  const handleCopyShareLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    setLinkCopied(true);
+    setCopiedLink(true);
     toast.success("Board link copied!");
-    setTimeout(() => setLinkCopied(false), 2000);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Export JSON
   const handleExportJSON = () => {
     setShowExportMenu(false);
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(elements, null, 2));
     const a = document.createElement("a");
     a.setAttribute("href", dataStr);
-    a.setAttribute("download", `${board?.title || "board"}-export.json`);
+    a.setAttribute("download", `${board?.title || "board"}-backup.json`);
     document.body.appendChild(a);
     a.click();
     a.remove();
     toast.success("Exported as JSON");
   };
 
+  // Export PNG (SVG canvas to image)
   const handleExportPNG = () => {
     setShowExportMenu(false);
     const svgEl = document.querySelector("svg");
-    if (!svgEl) return toast.error("Canvas not found");
-    const xml = new XMLSerializer().serializeToString(svgEl);
-    const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
-    const blobURL = URL.createObjectURL(blob);
+    if (!svgEl) return toast.error("Canvas element not found");
+
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const blobURL = URL.createObjectURL(svgBlob);
+
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -127,6 +133,8 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
       ctx.fillStyle = "#F7F8FC";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(blobURL);
+
       const png = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.setAttribute("href", png);
@@ -140,13 +148,13 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-16 px-6 bg-[#141418]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shadow-xl select-none font-sans text-white">
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 px-6 bg-[#ffffff]/90 backdrop-blur-xl border-b border-[#E8E9F0] flex items-center justify-between shadow-sm select-none font-sans text-[#0F0F1A]">
 
       {/* Left Section — Back + Brand Mark + Editable Title & Role */}
       <div className="flex items-center gap-4.5 min-w-0">
         <button
           onClick={() => navigate("/dashboard")}
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-300 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 active:scale-95"
+          className="w-10 h-10 flex items-center justify-center rounded-xl text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] transition-all flex-shrink-0 active:scale-95"
           title="Back to Dashboard"
         >
           <ChevronLeft className="w-5.5 h-5.5 stroke-[2.2]" />
@@ -160,7 +168,7 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
           <rect x="13" y="13" width="9" height="9" rx="2.5" fill="#6D5EF7" />
         </svg>
 
-        <div className="w-px h-5 bg-white/10 flex-shrink-0" />
+        <div className="w-px h-5 bg-[#E8E9F0] flex-shrink-0" />
 
         {/* Editable Board Title */}
         <div className="flex items-center gap-3 min-w-0">
@@ -171,53 +179,51 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
               onBlur={handleTitleBlur}
               onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
               autoFocus
-              className="border border-[#6D5EF7] rounded-xl px-3 py-1 text-sm font-semibold text-white outline-none bg-white/10 ring-2 ring-[#6D5EF7]/30 w-52"
+              className="border border-[#6D5EF7] rounded-xl px-3 py-1 text-sm font-semibold text-[#0F0F1A] outline-none bg-white ring-2 ring-[#6D5EF7]/30 w-52"
             />
           ) : (
             <h1
               onClick={() => setIsEditingTitle(true)}
-              className="text-sm font-semibold text-white cursor-pointer hover:bg-white/10 px-2.5 py-1.5 rounded-xl transition-colors truncate max-w-[220px]"
+              className="text-sm font-bold text-[#0F0F1A] cursor-pointer hover:bg-[#F3F4F6] px-2.5 py-1.5 rounded-xl transition-colors truncate max-w-[220px]"
               title="Click to rename board"
             >
-              {board?.title || "Untitled Board"}
+              {title}
             </h1>
           )}
 
-          <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-[#6D5EF7]/15 text-[#818CF8] border border-[#6D5EF7]/20 flex-shrink-0">
+          {/* Role Badge */}
+          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D5EF7] border border-[#C4B5FD] flex-shrink-0">
             {role || "Editor"}
           </span>
         </div>
       </div>
 
-      {/* Center Spacer for Breathable Whitespace */}
-      <div className="flex-1 min-w-[20px]" />
-
-      {/* Right Section — Presence Avatars + Action Icons Toolbar */}
-      <div className="flex items-center gap-4 flex-shrink-0">
-        {/* Active User Presence Avatars */}
-        {activeUsers.length > 0 && (
-          <div className="flex items-center -space-x-2.5 mr-1">
-            {activeUsers.slice(0, 4).map((u, i) => (
-              <PresenceAvatar key={u.userId || i} user={u} />
-            ))}
-            {activeUsers.length > 4 && (
-              <div className="w-8 h-8 rounded-full border-2 border-[#141418] bg-[#22222E] flex items-center justify-center text-[10px] font-bold text-zinc-300 shadow-md">
-                +{activeUsers.length - 4}
-              </div>
-            )}
-          </div>
+      {/* Center Section — Collaborator Active Avatars */}
+      <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#F3F4F6] border border-[#E8E9F0]">
+        <div className="flex items-center -space-x-2">
+          {activeUsers.slice(0, 5).map((u, i) => (
+            <PresenceAvatar key={u.userId || i} user={u} />
+          ))}
+        </div>
+        {activeUsers.length > 5 && (
+          <span className="text-xs font-semibold text-[#4B4B6A] ml-1">
+            +{activeUsers.length - 5}
+          </span>
         )}
+        <span className="text-xs font-semibold text-[#4B4B6A] ml-1">
+          {activeUsers.length === 1 ? "1 active" : `${activeUsers.length} online`}
+        </span>
+      </div>
 
-        <div className="w-px h-6 bg-white/10" />
-
+      {/* Right Action Icons Group */}
+      <div className="flex items-center gap-4">
         {/* Share Button */}
         <button
-          onClick={handleCopyLink}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-xs font-bold rounded-xl shadow-md shadow-[#6D5EF7]/25 transition-all active:scale-95"
-          title="Copy share link"
+          onClick={() => setShowShareModal(true)}
+          className="h-10 px-4 rounded-xl bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-[#6D5EF7]/25 active:scale-95"
         >
-          {linkCopied ? <Check className="w-4.5 h-4.5" /> : <Share2 className="w-4.5 h-4.5" />}
-          {linkCopied ? "Copied!" : "Share"}
+          <Share2 className="w-4 h-4" />
+          <span>Share</span>
         </button>
 
         {/* Live Chat */}
@@ -225,13 +231,13 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
           <MessageSquare className="w-5.5 h-5.5 stroke-[1.8]" />
         </NavBtn>
 
-        {/* Gemini AI Workspace */}
-        <NavBtn active={showAI} onClick={toggleAI} title="Gemini AI Workspace">
-          <Bot className="w-5.5 h-5.5 text-[#6D5EF7] stroke-[1.8]" />
+        {/* AI Assistant */}
+        <NavBtn active={showAI} onClick={toggleAI} title="AI Assistant">
+          <Bot className="w-5.5 h-5.5 stroke-[1.8] text-[#6D5EF7]" />
         </NavBtn>
 
-        {/* Members & Share */}
-        <NavBtn active={showMembers} onClick={toggleMembers} title="Members & Permissions">
+        {/* Members Panel */}
+        <NavBtn active={showMembers} onClick={toggleMembers} title="Board Members">
           <Users className="w-5.5 h-5.5 stroke-[1.8]" />
         </NavBtn>
 
@@ -248,38 +254,38 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute right-0 top-full mt-3 w-64 p-2 rounded-2xl bg-[#181820]/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/40 z-50 space-y-1 select-none"
+                className="absolute right-0 top-full mt-3 w-64 p-2 rounded-2xl bg-[#ffffff] border border-[#E8E9F0] shadow-2xl z-50 space-y-1 select-none"
               >
-                <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 border-b border-white/5 mb-1 flex items-center justify-between">
+                <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#9898B3] border-b border-[#F0F1F5] mb-1 flex items-center justify-between">
                   <span>Export Options</span>
-                  <span className="text-[9px] font-normal text-zinc-500">2 formats</span>
+                  <span className="text-[9px] font-normal text-[#4B4B6A]">2 formats</span>
                 </div>
 
                 {/* PNG Option */}
                 <button
                   onClick={handleExportPNG}
-                  className="w-full p-2.5 rounded-xl flex items-center gap-3 hover:bg-white/10 active:scale-[0.98] transition-all group text-left"
+                  className="w-full p-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F3F4F6] active:scale-[0.98] transition-all group text-left"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#6D5EF7]/15 border border-[#6D5EF7]/30 flex items-center justify-center text-[#818CF8] group-hover:bg-[#6D5EF7] group-hover:text-white transition-colors flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#EDE9FE] border border-[#C4B5FD] flex items-center justify-center text-[#6D5EF7] group-hover:bg-[#6D5EF7] group-hover:text-white transition-colors flex-shrink-0">
                     <ImageIcon className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white group-hover:text-white transition-colors">Export as PNG</p>
-                    <p className="text-[10px] text-zinc-400 group-hover:text-zinc-300 transition-colors">High-resolution image format</p>
+                    <p className="text-xs font-bold text-[#0F0F1A] transition-colors">Export as PNG</p>
+                    <p className="text-[10px] text-[#6B7280] transition-colors">High-resolution image format</p>
                   </div>
                 </button>
 
                 {/* JSON Option */}
                 <button
                   onClick={handleExportJSON}
-                  className="w-full p-2.5 rounded-xl flex items-center gap-3 hover:bg-white/10 active:scale-[0.98] transition-all group text-left"
+                  className="w-full p-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F3F4F6] active:scale-[0.98] transition-all group text-left"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex-shrink-0">
                     <FileCode className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white group-hover:text-white transition-colors">Export as JSON</p>
-                    <p className="text-[10px] text-zinc-400 group-hover:text-zinc-300 transition-colors">Full board data & element backup</p>
+                    <p className="text-xs font-bold text-[#0F0F1A] transition-colors">Export as JSON</p>
+                    <p className="text-[10px] text-[#6B7280] transition-colors">Full board data & element backup</p>
                   </div>
                 </button>
               </motion.div>
@@ -287,6 +293,47 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#ffffff] border border-[#E8E9F0] rounded-2xl p-6 shadow-2xl text-[#0F0F1A]"
+            >
+              <h3 className="text-lg font-bold mb-1">Share Board</h3>
+              <p className="text-xs text-[#6B7280] mb-4">Anyone with this link can view or edit this board.</p>
+
+              <div className="flex items-center gap-2 mb-6">
+                <input
+                  readOnly
+                  value={window.location.href}
+                  className="flex-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs font-mono text-[#0F0F1A] outline-none"
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="px-4 py-2 bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                >
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  <span>{copiedLink ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#4B4B6A] hover:bg-[#F3F4F6] transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

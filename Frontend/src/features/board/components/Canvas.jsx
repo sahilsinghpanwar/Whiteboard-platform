@@ -523,7 +523,7 @@ export function Canvas({
 
   return (
     <div
-      className="w-full h-full relative overflow-hidden bg-[#0e0e11] select-none cursor-crosshair font-sans"
+      className="w-full h-full relative overflow-hidden bg-[#F7F8FC] select-none cursor-crosshair font-sans"
       onWheel={handleWheel}
     >
       {/* ── Floating Selection Customization Bar ─────────────────────────────── */}
@@ -617,7 +617,7 @@ export function Canvas({
             patternUnits="userSpaceOnUse"
             patternTransform={`translate(${viewport.x}, ${viewport.y})`}
           >
-            <circle cx="2" cy="2" r={1.2 * viewport.zoom} fill="rgba(255, 255, 255, 0.12)" />
+            <circle cx="2" cy="2" r={1.2 * viewport.zoom} fill="rgba(15, 15, 26, 0.12)" />
           </pattern>
         </defs>
 

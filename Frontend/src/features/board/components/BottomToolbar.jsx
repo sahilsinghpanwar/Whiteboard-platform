@@ -15,8 +15,8 @@ function CtrlBtn({ onClick, disabled, title: tip, active, children }) {
       title={tip}
       className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all disabled:opacity-30 ${
         active
-          ? "bg-[#6D5EF7] text-white shadow-sm shadow-[#6D5EF7]/30"
-          : "text-zinc-400 hover:text-white hover:bg-white/10 disabled:hover:bg-transparent"
+          ? "bg-[#6D5EF7] text-white shadow-sm shadow-[#6D5EF7]/25"
+          : "text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] disabled:hover:bg-transparent"
       }`}
     >
       {children}
@@ -24,7 +24,7 @@ function CtrlBtn({ onClick, disabled, title: tip, active, children }) {
   );
 }
 
-const Sep = () => <div className="w-px h-5 bg-white/10" />;
+const Sep = () => <div className="w-px h-5 bg-[#E8E9F0]" />;
 
 /* ── Bottom Toolbar ──────────────────────────────────────────── */
 export function BottomToolbar({ emitCanvasSave }) {
@@ -57,7 +57,7 @@ export function BottomToolbar({ emitCanvasSave }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut", delay: 0.1 }}
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-[#1a1a22]/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30 select-none font-sans"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-[#ffffff]/95 backdrop-blur-xl border border-[#E8E9F0] shadow-xl shadow-black/5 select-none font-sans"
     >
       {/* Undo */}
       <CtrlBtn
@@ -88,7 +88,7 @@ export function BottomToolbar({ emitCanvasSave }) {
       <button
         onClick={handleFitScreen}
         title="Reset zoom (100%)"
-        className="px-2 h-8 min-w-[44px] text-xs font-mono font-semibold text-zinc-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+        className="px-2 h-8 min-w-[44px] text-xs font-mono font-semibold text-[#374151] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] rounded-lg transition-colors"
       >
         {Math.round(viewport.zoom * 100)}%
       </button>

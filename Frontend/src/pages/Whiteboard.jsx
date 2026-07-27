@@ -31,8 +31,8 @@ export default function WhiteboardPage() {
   // Wire Socket.io real-time collaboration hook
   const { emitElementUpdate, emitElementDelete, emitCursorMove, emitCanvasSave } = useBoard(boardId);
 
-  // Property State for Toolbar
-  const [strokeColor, setStrokeColor] = useState("#ffffff");
+  // Property State for Toolbar — Light Mode Theme Default (#0F0F1A stroke)
+  const [strokeColor, setStrokeColor] = useState("#0F0F1A");
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [stickyBg, setStickyBg] = useState("#fef08a");
 
@@ -84,15 +84,15 @@ export default function WhiteboardPage() {
 
   if (loading) {
     return (
-      <div className="w-screen h-screen bg-[#0e0e11] flex flex-col items-center justify-center text-white">
+      <div className="w-screen h-screen bg-[#F7F8FC] flex flex-col items-center justify-center text-[#0F0F1A]">
         <div className="w-8 h-8 border-4 border-[#6D5EF7] border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-sm font-medium text-zinc-400">Loading whiteboard session...</p>
+        <p className="text-sm font-medium text-[#4B4B6A]">Loading whiteboard session...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen overflow-hidden flex flex-col bg-[#0e0e11] font-sans antialiased text-white select-none">
+    <div className="w-screen h-screen overflow-hidden flex flex-col bg-[#F7F8FC] font-sans antialiased text-[#0F0F1A] select-none">
       {/* Top Header */}
       <BoardHeader boardId={boardId} emitCanvasSave={emitCanvasSave} />
 
@@ -131,4 +131,3 @@ export default function WhiteboardPage() {
     </div>
   );
 }
-

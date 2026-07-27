@@ -33,8 +33,8 @@ function ToolBtn({ active, onClick, title: tip, children, className = "" }) {
       title={tip}
       className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-150 relative group ${
         active
-          ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/30"
-          : `text-zinc-400 hover:text-white hover:bg-white/10 ${className}`
+          ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/25"
+          : `text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] ${className}`
       }`}
     >
       {children}
@@ -47,7 +47,7 @@ function ToolBtn({ active, onClick, title: tip, children, className = "" }) {
 }
 
 /* ── Divider ─────────────────────────────────────────────────── */
-const Divider = () => <div className="w-6 h-px bg-white/10 my-0.5" />;
+const Divider = () => <div className="w-6 h-px bg-[#E8E9F0] my-0.5" />;
 
 /* ── Board Toolbar ───────────────────────────────────────────── */
 export function BoardToolbar({
@@ -216,10 +216,10 @@ export function BoardToolbar({
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1 p-2 rounded-2xl bg-[#1a1a22]/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30 select-none font-sans"
+      className="fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1 p-2 rounded-2xl bg-[#ffffff]/95 backdrop-blur-xl border border-[#E8E9F0] shadow-xl shadow-black/5 select-none font-sans"
     >
       {!canEdit && (
-        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mb-1">
+        <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mb-1">
           View Only
         </span>
       )}
@@ -259,7 +259,7 @@ export function BoardToolbar({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.13 }}
-                className="absolute left-full ml-3 top-0 p-1.5 rounded-xl bg-[#1a1a22] border border-white/10 shadow-2xl flex flex-col gap-1 min-w-[140px]"
+                className="absolute left-full ml-3 top-0 p-1.5 rounded-xl bg-[#ffffff] border border-[#E8E9F0] shadow-xl flex flex-col gap-1 min-w-[140px]"
               >
                 {[
                   { key: "rect",     icon: <Square className="w-4 h-4" />,       label: "Rectangle" },
@@ -273,7 +273,7 @@ export function BoardToolbar({
                     key={key}
                     onClick={() => handleShapeSelect(key)}
                     className={`w-full px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium transition-colors ${
-                      activeShape === key ? "bg-[#6D5EF7] text-white" : "text-zinc-400 hover:text-white hover:bg-white/10"
+                      activeShape === key ? "bg-[#6D5EF7] text-white" : "text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6]"
                     }`}
                   >
                     {icon}
@@ -329,10 +329,10 @@ export function BoardToolbar({
         <button
           onClick={() => setShowColorMenu((v) => !v)}
           title="Colors & Stroke"
-          className="w-9 h-9 flex items-center justify-center rounded-xl transition-all text-zinc-400 hover:text-white hover:bg-white/10 group relative"
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-all text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] group relative"
         >
           <div
-            className="w-5 h-5 rounded-full border-2 border-white/20 shadow-inner"
+            className="w-5 h-5 rounded-full border border-black/10 shadow-inner"
             style={{ backgroundColor: activeTool === CANVAS_TOOLS.STICKY ? stickyBg : strokeColor }}
           />
           {/* Tooltip */}
@@ -346,11 +346,11 @@ export function BoardToolbar({
             initial={{ opacity: 0, x: 8, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.13 }}
-            className="absolute left-full ml-3 top-0 p-3 rounded-2xl bg-[#1a1a22] border border-white/10 shadow-2xl min-w-[200px] space-y-3"
+            className="absolute left-full ml-3 top-0 p-3 rounded-2xl bg-[#ffffff] border border-[#E8E9F0] shadow-xl min-w-[200px] space-y-3"
           >
             {/* Stroke color */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Stroke Color</p>
+              <p className="text-[10px] font-bold text-[#9898B3] uppercase tracking-wider mb-2">Stroke Color</p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {STROKE_COLORS.map((c) => (
                   <button
@@ -367,7 +367,7 @@ export function BoardToolbar({
 
             {/* Sticky color */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Sticky Color</p>
+              <p className="text-[10px] font-bold text-[#9898B3] uppercase tracking-wider mb-2">Sticky Color</p>
               <div className="grid grid-cols-6 gap-1.5">
                 {STICKY_COLORS.map((s) => (
                   <button
@@ -385,7 +385,7 @@ export function BoardToolbar({
 
             {/* Stroke width */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Stroke Width</p>
+              <p className="text-[10px] font-bold text-[#9898B3] uppercase tracking-wider mb-2">Stroke Width</p>
               <div className="flex items-center gap-1.5">
                 {[2, 4, 8].map((w) => (
                   <button
@@ -394,7 +394,7 @@ export function BoardToolbar({
                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                       strokeWidth === w
                         ? "bg-[#6D5EF7] text-white border-[#6D5EF7]"
-                        : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10"
+                        : "bg-[#F3F4F6] text-[#374151] border-[#E5E7EB] hover:bg-[#E5E7EB]"
                     }`}
                   >
                     {w === 2 ? "Thin" : w === 4 ? "Mid" : "Bold"}
@@ -410,8 +410,8 @@ export function BoardToolbar({
 
       {/* Clear Canvas Action */}
       {canEdit && (
-        <ToolBtn onClick={handleClearAllCanvas} title="Clear Canvas Elements" className="hover:!text-rose-400">
-          <Trash2 className="w-4 h-4 text-zinc-400 hover:text-rose-400" />
+        <ToolBtn onClick={handleClearAllCanvas} title="Clear Canvas Elements" className="hover:!text-rose-600">
+          <Trash2 className="w-4 h-4 text-[#4B4B6A] hover:text-rose-600" />
         </ToolBtn>
       )}
 
@@ -421,8 +421,8 @@ export function BoardToolbar({
         title="AI Assistant"
         className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative group ${
           showAI
-            ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/30"
-            : "text-[#6D5EF7] hover:text-white hover:bg-white/10"
+            ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/25"
+            : "text-[#6D5EF7] hover:text-[#5B4CE0] hover:bg-[#EDE9FE]"
         }`}
       >
         <Bot className="w-4.5 h-4.5" />
