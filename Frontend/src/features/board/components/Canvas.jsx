@@ -169,7 +169,7 @@ export function Canvas({
       upsertElement(newStickyElement);
       setSelectedElementIds([newStickyElement.id]);
       emitElementUpdate?.(newStickyElement);
-      setActiveTool(CANVAS_TOOLS.SELECT); // Automatically switch to Select tool so user can immediately move, adjust, or double click to type!
+      setActiveTool(CANVAS_TOOLS.SELECT);
       return;
     }
 
@@ -190,7 +190,7 @@ export function Canvas({
       upsertElement(newTextElement);
       setSelectedElementIds([newTextElement.id]);
       emitElementUpdate?.(newTextElement);
-      setActiveTool(CANVAS_TOOLS.SELECT); // Switch to Select tool
+      setActiveTool(CANVAS_TOOLS.SELECT);
       return;
     }
   };
@@ -288,17 +288,30 @@ export function Canvas({
       return;
     }
 
-    // Creating Shape Element
+    // Creating Shape / Line / Arrow Element
     if (currentElement && dragStart) {
       const width = coords.x - dragStart.x;
       const height = coords.y - dragStart.y;
-      const updatedShape = {
-        ...currentElement,
-        x: width < 0 ? coords.x : dragStart.x,
-        y: height < 0 ? coords.y : dragStart.y,
-        width: Math.abs(width),
-        height: Math.abs(height),
-      };
+
+      let updatedShape;
+      if (currentElement.type === "arrow" || currentElement.type === "line") {
+        // Preserves vector direction for lines and arrows
+        updatedShape = {
+          ...currentElement,
+          x: dragStart.x,
+          y: dragStart.y,
+          width,
+          height,
+        };
+      } else {
+        updatedShape = {
+          ...currentElement,
+          x: width < 0 ? coords.x : dragStart.x,
+          y: height < 0 ? coords.y : dragStart.y,
+          width: Math.abs(width),
+          height: Math.abs(height),
+        };
+      }
       setCurrentElement(updatedShape);
       return;
     }
@@ -359,12 +372,23 @@ export function Canvas({
       emitElementUpdate?.(finalElement);
       setSelectedElementIds([finalElement.id]);
       setCurrentElement(null);
-      setActiveTool(CANVAS_TOOLS.SELECT); // Switch to select tool after drawing shape
+      setActiveTool(CANVAS_TOOLS.SELECT);
     }
   };
 
-  // ─── Element Direct Click & Drag Handler ─────────────────────────────────
+  // ─── Element Direct Click, Drag & Erase Handler ──────────────────────────
   const handleElementSelect = (id, isShift, pointerEvent) => {
+    // Check if Eraser tool is active
+    if (activeTool === CANVAS_TOOLS.ERASER) {
+      if (canEdit) {
+        deleteElements([id]);
+        emitElementDelete?.([id]);
+        setSelectedElementIds([]);
+        toast.success("Element erased");
+      }
+      return;
+    }
+
     const coords = getCanvasCoordinates(pointerEvent);
     setIsPointerDown(true);
     setDragStart(coords);
