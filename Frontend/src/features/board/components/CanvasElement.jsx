@@ -161,7 +161,6 @@ export function CanvasElement({
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
-        {/* Inline Label / Text */}
         {(textValue || isEditing) && (
           <foreignObject
             x={x + 8}
@@ -251,6 +250,150 @@ export function CanvasElement({
             )}
           </foreignObject>
         )}
+        {renderResizeHandles(x, y, width, height)}
+      </g>
+    );
+  }
+
+  // ─── Diamond (Decision Node) ──────────────────────────────────────────────
+  if (element.type === "diamond") {
+    const { x, y, width = 120, height = 120 } = element;
+    const points = `${x + width / 2},${y} ${x + width},${y + height / 2} ${x + width / 2},${y + height} ${x},${y + height / 2}`;
+
+    return (
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
+        <polygon
+          points={points}
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+        />
+        {(textValue || isEditing) && (
+          <foreignObject
+            x={x + width * 0.2}
+            y={y + height * 0.2}
+            width={width * 0.6}
+            height={height * 0.6}
+            style={{ pointerEvents: isEditing ? "auto" : "none" }}
+          >
+            {isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                onBlur={handleTextBlur}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") handleTextBlur();
+                }}
+                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-xs font-medium"
+                style={{ color: element.data?.textColor || strokeColor }}
+              />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center text-center font-sans text-xs font-medium overflow-hidden"
+                style={{ color: element.data?.textColor || strokeColor }}
+              >
+                {textValue}
+              </div>
+            )}
+          </foreignObject>
+        )}
+        {renderResizeHandles(x, y, width, height)}
+      </g>
+    );
+  }
+
+  // ─── Triangle ─────────────────────────────────────────────────────────────
+  if (element.type === "triangle") {
+    const { x, y, width = 120, height = 110 } = element;
+    const points = `${x + width / 2},${y} ${x + width},${y + height} ${x},${y + height}`;
+
+    return (
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
+        <polygon
+          points={points}
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+        />
+        {(textValue || isEditing) && (
+          <foreignObject
+            x={x + width * 0.25}
+            y={y + height * 0.4}
+            width={width * 0.5}
+            height={height * 0.5}
+            style={{ pointerEvents: isEditing ? "auto" : "none" }}
+          >
+            {isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                onBlur={handleTextBlur}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") handleTextBlur();
+                }}
+                className="w-full h-full bg-transparent border-none outline-none resize-none text-center font-sans text-xs font-medium"
+                style={{ color: element.data?.textColor || strokeColor }}
+              />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center text-center font-sans text-xs font-medium overflow-hidden"
+                style={{ color: element.data?.textColor || strokeColor }}
+              >
+                {textValue}
+              </div>
+            )}
+          </foreignObject>
+        )}
+        {renderResizeHandles(x, y, width, height)}
+      </g>
+    );
+  }
+
+  // ─── Frame Container ──────────────────────────────────────────────────────
+  if (element.type === "frame") {
+    const { x, y, width = 320, height = 240 } = element;
+    const labelText = element.data?.text || element.data?.label || "Frame Section";
+
+    return (
+      <g onPointerDown={handlePointerDown} onDoubleClick={() => !isReadOnly && setIsEditing(true)} style={{ cursor: "move" }}>
+        <rect
+          x={x}
+          y={y}
+          width={Math.max(width, 100)}
+          height={Math.max(height, 100)}
+          rx={12}
+          fill="rgba(109, 94, 247, 0.03)"
+          stroke="#6D5EF7"
+          strokeWidth={2}
+          strokeDasharray="6 6"
+        />
+        {/* Frame Label Tag */}
+        <rect
+          x={x}
+          y={y - 24}
+          width={Math.max(labelText.length * 8 + 20, 90)}
+          height={24}
+          rx={6}
+          fill="#6D5EF7"
+        />
+        <text
+          x={x + 10}
+          y={y - 8}
+          fill="#ffffff"
+          fontSize="11"
+          fontWeight="700"
+          fontFamily="sans-serif"
+        >
+          {labelText}
+        </text>
         {renderResizeHandles(x, y, width, height)}
       </g>
     );

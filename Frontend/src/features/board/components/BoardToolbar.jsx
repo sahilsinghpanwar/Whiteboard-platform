@@ -6,7 +6,7 @@ import { uploadApi } from "@/features/upload/api/upload.api.js";
 import {
   MousePointer, Hand, Pencil, Eraser, Square, Circle,
   ArrowUpRight, Minus, StickyNote, Type, Image as ImageIcon,
-  Bot,
+  Bot, Diamond, Triangle, Frame, Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -54,14 +54,14 @@ export function BoardToolbar({
   strokeColor, setStrokeColor,
   strokeWidth, setStrokeWidth,
   stickyBg, setStickyBg,
-  emitElementUpdate, emitCanvasSave,
+  emitElementUpdate, emitElementDelete, emitCanvasSave,
 }) {
   const { boardId } = useParams();
   const {
     activeTool, setActiveTool,
     activeShape, setActiveShape,
     toggleAI, showAI,
-    upsertElement, selectedElementIds, elements,
+    upsertElement, deleteElements, selectedElementIds, elements,
     role,
   } = useBoardStore();
 
@@ -137,6 +137,34 @@ export function BoardToolbar({
     setShowShapeMenu(false);
   };
 
+  const handleCreateFrame = () => {
+    if (!canEdit) return toast.error("You have view-only access to this board");
+    const frameId = `frame_${Date.now()}`;
+    const frameEl = {
+      id: frameId,
+      type: "frame",
+      x: 140,
+      y: 140,
+      width: 320,
+      height: 240,
+      data: { text: "Section Frame" },
+    };
+    upsertElement(frameEl);
+    emitElementUpdate?.(frameEl);
+    toast.success("Frame container created");
+  };
+
+  const handleClearAllCanvas = () => {
+    if (!canEdit) return;
+    if (elements.length === 0) return toast.error("Canvas is already empty");
+    if (window.confirm("Are you sure you want to clear all canvas elements?")) {
+      const allIds = elements.map((e) => e.id);
+      deleteElements(allIds);
+      emitElementDelete?.(allIds);
+      toast.success("Canvas cleared");
+    }
+  };
+
   const handleImageUpload = async (e) => {
     if (!canEdit) {
       toast.error("You have view-only access to this board");
@@ -177,6 +205,8 @@ export function BoardToolbar({
   const shapeIcon = {
     rect: <Square className="w-4 h-4" />,
     circle: <Circle className="w-4 h-4" />,
+    diamond: <Diamond className="w-4 h-4" />,
+    triangle: <Triangle className="w-4 h-4" />,
     arrow: <ArrowUpRight className="w-4 h-4" />,
     line: <Minus className="w-4 h-4" />,
   };
@@ -218,7 +248,7 @@ export function BoardToolbar({
             <ToolBtn
               active={activeTool === CANVAS_TOOLS.SHAPE}
               onClick={() => setShowShapeMenu((v) => !v)}
-              title="Shapes"
+              title="Shapes & Flowcharts"
             >
               {shapeIcon[activeShape] || <Square className="w-4 h-4" />}
             </ToolBtn>
@@ -229,28 +259,35 @@ export function BoardToolbar({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.13 }}
-                className="absolute left-full ml-3 top-0 p-1.5 rounded-xl bg-[#1a1a22] border border-white/10 shadow-2xl flex flex-col gap-1"
+                className="absolute left-full ml-3 top-0 p-1.5 rounded-xl bg-[#1a1a22] border border-white/10 shadow-2xl flex flex-col gap-1 min-w-[140px]"
               >
                 {[
-                  { key: "rect",   icon: <Square className="w-4 h-4" />,       label: "Rectangle" },
-                  { key: "circle", icon: <Circle className="w-4 h-4" />,       label: "Circle" },
-                  { key: "arrow",  icon: <ArrowUpRight className="w-4 h-4" />, label: "Arrow" },
-                  { key: "line",   icon: <Minus className="w-4 h-4" />,        label: "Line" },
+                  { key: "rect",     icon: <Square className="w-4 h-4" />,       label: "Rectangle" },
+                  { key: "circle",   icon: <Circle className="w-4 h-4" />,       label: "Circle / Ellipse" },
+                  { key: "diamond",  icon: <Diamond className="w-4 h-4" />,      label: "Decision Diamond" },
+                  { key: "triangle", icon: <Triangle className="w-4 h-4" />,     label: "Triangle" },
+                  { key: "arrow",    icon: <ArrowUpRight className="w-4 h-4" />, label: "Connector Arrow" },
+                  { key: "line",     icon: <Minus className="w-4 h-4" />,        label: "Straight Line" },
                 ].map(({ key, icon, label }) => (
                   <button
                     key={key}
                     onClick={() => handleShapeSelect(key)}
-                    title={label}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                    className={`w-full px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium transition-colors ${
                       activeShape === key ? "bg-[#6D5EF7] text-white" : "text-zinc-400 hover:text-white hover:bg-white/10"
                     }`}
                   >
                     {icon}
+                    <span>{label}</span>
                   </button>
                 ))}
               </motion.div>
             )}
           </div>
+
+          {/* Frame Tool */}
+          <ToolBtn active={false} onClick={handleCreateFrame} title="Section Frame (F)">
+            <Frame className="w-4 h-4" />
+          </ToolBtn>
 
           {/* Sticky note */}
           <ToolBtn active={activeTool === CANVAS_TOOLS.STICKY} onClick={() => handleToolSelect(CANVAS_TOOLS.STICKY)} title="Sticky Note (S)">
@@ -370,6 +407,13 @@ export function BoardToolbar({
       </div>
 
       <Divider />
+
+      {/* Clear Canvas Action */}
+      {canEdit && (
+        <ToolBtn onClick={handleClearAllCanvas} title="Clear Canvas Elements" className="hover:!text-rose-400">
+          <Trash2 className="w-4 h-4 text-zinc-400 hover:text-rose-400" />
+        </ToolBtn>
+      )}
 
       {/* AI shortcut */}
       <button
