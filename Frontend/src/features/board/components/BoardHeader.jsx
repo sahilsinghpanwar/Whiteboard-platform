@@ -35,7 +35,7 @@ function NavBtn({ active, onClick, title: tip, children }) {
     <button
       onClick={onClick}
       title={tip}
-      className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 relative group ${
+      className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-150 relative group ${
         active
           ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/25"
           : "text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] active:scale-95"
@@ -192,59 +192,70 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
           )}
 
           {/* Role Badge */}
-          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D5EF7] border border-[#C4B5FD] flex-shrink-0">
-            {role || "Editor"}
-          </span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE]/80 border border-[#C4B5FD]/70 text-[#6D5EF7] shadow-sm flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#6D5EF7] animate-pulse" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">
+              {role || "Editor"}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Center Section — Collaborator Active Avatars */}
-      <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#F3F4F6] border border-[#E8E9F0]">
+      <div className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
         <div className="flex items-center -space-x-2">
-          {activeUsers.slice(0, 5).map((u, i) => (
+          {activeUsers.slice(0, 4).map((u, i) => (
             <PresenceAvatar key={u.userId || i} user={u} />
           ))}
         </div>
-        {activeUsers.length > 5 && (
-          <span className="text-xs font-semibold text-[#4B4B6A] ml-1">
-            +{activeUsers.length - 5}
+        {activeUsers.length > 4 && (
+          <span className="text-[10px] font-bold text-[#6D5EF7] bg-[#EDE9FE] px-2 py-0.5 rounded-full">
+            +{activeUsers.length - 4}
           </span>
         )}
-        <span className="text-xs font-semibold text-[#4B4B6A] ml-1">
-          {activeUsers.length === 1 ? "1 active" : `${activeUsers.length} online`}
-        </span>
+        <div className="flex items-center gap-1.5 ml-0.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-bold text-[#0F0F1A]">
+            {activeUsers.length === 1 ? "1 Online" : `${activeUsers.length} Online`}
+          </span>
+        </div>
       </div>
 
-      {/* Right Action Icons Group */}
-      <div className="flex items-center gap-4">
+      {/* Right Action Icons Group in Unified Glass Card */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
         {/* Share Button */}
         <button
           onClick={() => setShowShareModal(true)}
-          className="h-10 px-4 rounded-xl bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-[#6D5EF7]/25 active:scale-95"
+          className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-[#6D5EF7] to-[#7C6EF8] hover:from-[#5B4CE0] hover:to-[#6D5EF7] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-[#6D5EF7]/20 active:scale-95 border border-white/20 cursor-pointer"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>Share</span>
         </button>
 
+        <div className="w-px h-5 bg-[#E8E9F0]" />
+
         {/* Live Chat */}
         <NavBtn active={showChat} onClick={toggleChat} title="Live Chat">
-          <MessageSquare className="w-5.5 h-5.5 stroke-[1.8]" />
+          <MessageSquare className="w-4.5 h-4.5 stroke-[1.8]" />
         </NavBtn>
 
         {/* AI Assistant */}
         <NavBtn active={showAI} onClick={toggleAI} title="AI Assistant">
-          <Bot className="w-5.5 h-5.5 stroke-[1.8] text-[#6D5EF7]" />
+          <Bot className="w-4.5 h-4.5 stroke-[1.8] text-[#6D5EF7]" />
         </NavBtn>
 
         {/* Members Panel */}
         <NavBtn active={showMembers} onClick={toggleMembers} title="Board Members">
-          <Users className="w-5.5 h-5.5 stroke-[1.8]" />
+          <Users className="w-4.5 h-4.5 stroke-[1.8]" />
         </NavBtn>
 
         {/* Export Dropdown */}
         <div className="relative" ref={exportRef}>
           <NavBtn active={showExportMenu} onClick={() => setShowExportMenu((v) => !v)} title="Export Board">
-            <Download className="w-5.5 h-5.5 stroke-[1.8]" />
+            <Download className="w-4.5 h-4.5 stroke-[1.8]" />
           </NavBtn>
 
           <AnimatePresence>
