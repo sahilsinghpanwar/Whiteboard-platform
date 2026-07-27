@@ -1,9 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAIWorkspace, PROMPT_CATEGORIES } from "@/features/ai/hooks/Useaiworkspace.js";
+import { useAIWorkspace } from "@/features/ai/hooks/Useaiworkspace.js";
 import {
-  Sparkles, X, Plus, Send, Loader2, Copy, Check, ArrowRight,
-  Layers, Cpu, Database, Code, ShieldAlert, FileText, LayoutGrid, RotateCcw, Trash2
+  Bot, X, Send, Loader2, Copy, Check, ArrowRight, Layers, Trash2
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -81,10 +80,9 @@ function UserBubble({ content }) {
 }
 
 /* ── AI Response Bubble with Canvas Badges ───────────────────────── */
-function AIBubble({ msg, onInsert, onReRun }) {
-  const { content, summary, opResult, isError } = msg;
+function AIBubble({ msg, onInsert }) {
+  const { content, summary, isError } = msg;
 
-  // Format code blocks vs text paragraphs
   const renderFormattedText = (text) => {
     if (!text) return null;
     const parts = text.split(/(```[\s\S]*?```)/g);
@@ -173,8 +171,6 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
     messages,
     input,
     setInput,
-    activeCategory,
-    setActiveCategory,
     isProcessing,
     streamingStep,
     selectedElementIds,
@@ -186,7 +182,6 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-scroll (Rules of Hooks: called unconditionally before returning null)
   useEffect(() => {
     if (!showAI) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -194,7 +189,6 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
 
   if (!showAI) return null;
 
-  /* Card styling — 100% matched to MembersSidebar.jsx */
   const card = {
     position: "fixed", right: 16, top: 64, zIndex: 40,
     width: 340, height: "calc(100vh - 80px)", maxHeight: 640,
@@ -224,17 +218,17 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 10,
+            width: 34, height: 34, borderRadius: 10,
             backgroundColor: "#EDE9FE",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0,
           }}>
-            <Sparkles style={{ width: 16, height: 16, color: "#6D5EF7" }} />
+            <Bot style={{ width: 18, height: 18, color: "#6D5EF7" }} />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>
-                Gemini Agent
+                AI Assistant
               </h2>
               {selectedElementIds.length > 0 && (
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#6D5EF7", backgroundColor: "#EDE9FE", padding: "1px 6px", borderRadius: 999 }}>
@@ -248,7 +242,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
           </div>
         </div>
 
-        {/* Action icons */}
+        {/* Header Action Icons */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <button
             onClick={handleClearChat}
@@ -283,41 +277,6 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         </div>
       </div>
 
-      {/* ── Category Quick Filter Chips ─────────────────────────── */}
-      <div style={{
-        padding: "10px 14px",
-        borderBottom: "1px solid #F0F1F5",
-        display: "flex", gap: 6, overflowX: "auto", flexShrink: 0,
-        scrollbarWidth: "none",
-      }}>
-        {PROMPT_CATEGORIES.map((cat) => {
-          const isActive = activeCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                if (cat.prompt) handleSendPrompt(cat.prompt);
-              }}
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                padding: "4px 10px",
-                borderRadius: 999,
-                border: isActive ? "1px solid #C4B5FD" : "1px solid #E5E7EB",
-                backgroundColor: isActive ? "#EDE9FE" : "#F9FAFB",
-                color: isActive ? "#6D5EF7" : "#4B4B6A",
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* ── Streaming / Processing Step Banner ──────────────────── */}
       {streamingStep && (
         <div style={{
@@ -342,56 +301,18 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         {messages.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, padding: "20px 0", textAlign: "center" }}>
             <div style={{
-              width: 44, height: 44, borderRadius: "50%",
+              width: 48, height: 48, borderRadius: "50%",
               backgroundColor: "#EDE9FE",
               display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 2px",
+              margin: "0 auto 4px",
             }}>
-              <Sparkles style={{ width: 20, height: 20, color: "#6D5EF7" }} />
+              <Bot style={{ width: 22, height: 22, color: "#6D5EF7" }} />
             </div>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>Board AI Agent</p>
-              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4, margin: "4px 0 0", maxWidth: 240 }}>
-                Ask me to edit the board, create architecture diagrams, roadmaps, generate code, or review your design.
+              <p style={{ fontSize: 14, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>AI Board Assistant</p>
+              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6, margin: "6px 0 0", maxWidth: 240, lineHeight: 1.5 }}>
+                Type any prompt below to create diagrams, edit notes, generate code, or analyze your whiteboard.
               </p>
-            </div>
-
-            {/* Default Quick Actions */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 6 }}>
-              {[
-                "Microservice Architecture",
-                "Fullstack Roadmap",
-                "Create red sticky note 'Review API'",
-                "Summarize board",
-              ].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleSendPrompt(s)}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    backgroundColor: "#F3F4F6",
-                    color: "#374151",
-                    border: "1px solid #E5E7EB",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#EDE9FE";
-                    e.currentTarget.style.color = "#6D5EF7";
-                    e.currentTarget.style.borderColor = "#C4B5FD";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#F3F4F6";
-                    e.currentTarget.style.color = "#374151";
-                    e.currentTarget.style.borderColor = "#E5E7EB";
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
             </div>
           </div>
         ) : (
@@ -406,11 +327,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
                 {msg.role === "user" ? (
                   <UserBubble content={msg.content} />
                 ) : (
-                  <AIBubble
-                    msg={msg}
-                    onInsert={handleInsertOnBoard}
-                    onReRun={() => handleSendPrompt(msg.content)}
-                  />
+                  <AIBubble msg={msg} onInsert={handleInsertOnBoard} />
                 )}
               </motion.div>
             ))}
@@ -434,7 +351,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         <input
           ref={inputRef}
           type="text"
-          placeholder="Command agent or ask anything…"
+          placeholder="Ask AI or give canvas instructions…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={isProcessing}

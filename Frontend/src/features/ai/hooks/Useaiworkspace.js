@@ -1,8 +1,7 @@
 /**
  * useAIWorkspace Hook
  * Custom hook encapsulating AI Board Agent state, conversation memory,
- * prompt category management, simulated streaming progress steps,
- * API requests, and operation execution.
+ * simulated streaming progress steps, API requests, and operation execution.
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -12,26 +11,12 @@ import { aiApi } from "../api/Ai.api.js";
 import { CanvasOperationExecutor } from "../services/CanvasOperationExecutor.js";
 import toast from "react-hot-toast";
 
-export const PROMPT_CATEGORIES = [
-  { id: "all", label: "All Prompts" },
-  { id: "architecture", label: "Architecture", prompt: "Generate a Microservices System Architecture diagram with API Gateway, Auth, DB, and Redis" },
-  { id: "roadmap", label: "Roadmap", prompt: "Create a Fullstack Web Development Roadmap diagram with step-by-step milestones" },
-  { id: "backend", label: "Backend", prompt: "Design a Node.js Express & PostgreSQL Backend Architecture with Auth & Caching" },
-  { id: "frontend", label: "Frontend", prompt: "Create a React + Redux/Zustand state management and component flow diagram" },
-  { id: "database", label: "Database", prompt: "Generate a PostgreSQL E-commerce Database Schema with User, Product, and Order entities" },
-  { id: "code", label: "Code Gen", prompt: "Generate a production-ready Express JWT Authentication Controller & Middleware code" },
-  { id: "review", label: "Board Review", prompt: "Review everything on this board. Identify security issues, scaling bottlenecks, and bad naming" },
-  { id: "summary", label: "Summary", prompt: "Summarize this entire board into an Executive Summary with Action Items and Next Steps" },
-  { id: "mindmap", label: "Mind Map", prompt: "Create a Mind Map diagram exploring AI Engineering & LLM Application Development" },
-];
-
 export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanvasSave }) {
   const { boardId } = useParams();
   const { showAI, toggleAI, selectedElementIds, role, upsertElement } = useBoardStore();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [streamingStep, setStreamingStep] = useState(null);
 
@@ -163,8 +148,6 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
     messages,
     input,
     setInput,
-    activeCategory,
-    setActiveCategory,
     isProcessing,
     streamingStep,
     selectedElementIds,

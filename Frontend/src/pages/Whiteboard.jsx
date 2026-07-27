@@ -97,7 +97,7 @@ export default function WhiteboardPage() {
       <BoardHeader boardId={boardId} emitCanvasSave={emitCanvasSave} />
 
       {/* Main canvas — offset for header (top), left toolbar (left), bottom bar */}
-      <main className="flex-1 w-full h-full relative pt-14 pl-16 pb-12">
+      <main className="flex-1 w-full h-full relative pt-16 pl-16 pb-12">
         <Canvas
           strokeColor={strokeColor}
           strokeWidth={strokeWidth}

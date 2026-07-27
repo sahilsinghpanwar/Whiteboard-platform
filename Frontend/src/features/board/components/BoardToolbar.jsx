@@ -6,7 +6,7 @@ import { uploadApi } from "@/features/upload/api/upload.api.js";
 import {
   MousePointer, Hand, Pencil, Eraser, Square, Circle,
   ArrowUpRight, Minus, StickyNote, Type, Image as ImageIcon,
-  Sparkles,
+  Bot,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -374,16 +374,16 @@ export function BoardToolbar({
       {/* AI shortcut */}
       <button
         onClick={toggleAI}
-        title="Gemini AI Tools"
+        title="AI Assistant"
         className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative group ${
           showAI
-            ? "bg-gradient-to-b from-[#6D5EF7] to-[#8B5CF6] text-white shadow-md shadow-[#6D5EF7]/30"
-            : "text-amber-400 hover:text-amber-300 hover:bg-white/10"
+            ? "bg-[#6D5EF7] text-white shadow-md shadow-[#6D5EF7]/30"
+            : "text-[#6D5EF7] hover:text-white hover:bg-white/10"
         }`}
       >
-        <Sparkles className="w-4 h-4" />
+        <Bot className="w-4.5 h-4.5" />
         <span className="pointer-events-none absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#0F0F1A] text-white text-[11px] font-medium px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-lg z-50">
-          AI Tools
+          AI Assistant
         </span>
       </button>
     </motion.div>

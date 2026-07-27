@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBoardStore, CANVAS_TOOLS } from "../store/Boardstore.js";
 import CanvasElement from "./CanvasElement.jsx";
-import { Trash2, Copy, Type, Palette, Move, Sparkles } from "lucide-react";
+import { Trash2, Copy, Type, Palette, Move, Bot } from "lucide-react";
 import toast from "react-hot-toast";
 
 const PALETTE_COLORS = [
@@ -571,7 +571,7 @@ export function Canvas({
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#6D5EF7] bg-[#EDE9FE] hover:bg-[#C4B5FD] transition-colors"
               title="Ask AI to modify selection"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#6D5EF7]" />
+              <Bot className="w-3.5 h-3.5 text-[#6D5EF7]" />
               AI Edit
             </button>
           </motion.div>
