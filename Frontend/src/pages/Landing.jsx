@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Landing.module.css";
 
-// ─── Animation Variants ───────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -19,7 +18,6 @@ const stagger = {
   show: { transition: { staggerChildren: 0.1 } },
 };
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
   {
@@ -140,7 +138,6 @@ const STATS = [
   { value: "4.9 ★", label: "User rating" },
 ];
 
-// ─── Canvas Mock (clean, simplified) ─────────────────────────────────────────
 
 const CanvasMock = () => (
   <div className={styles.mockWrap}>
@@ -272,7 +269,6 @@ role_permissions
   </div>
 );
 
-// ─── Navbar ───────────────────────────────────────────────────────────────────
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -316,7 +312,6 @@ const Navbar = () => {
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Landing() {
   return (

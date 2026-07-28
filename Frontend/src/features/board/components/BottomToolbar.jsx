@@ -6,7 +6,7 @@ import {
   Maximize, Hand,
 } from "lucide-react";
 
-/* ── Control Button ──────────────────────────────────────────── */
+/* Control Button */
 function CtrlBtn({ onClick, disabled, title: tip, active, children }) {
   return (
     <button
@@ -26,7 +26,7 @@ function CtrlBtn({ onClick, disabled, title: tip, active, children }) {
 
 const Sep = () => <div className="w-px h-5 bg-[#E8E9F0]" />;
 
-/* ── Bottom Toolbar ──────────────────────────────────────────── */
+/* Bottom Toolbar */
 export function BottomToolbar({ emitCanvasSave }) {
   const {
     undo, redo, historyIndex, history,

@@ -88,7 +88,7 @@ export function CanvasElement({
     );
   };
 
-  // ─── Image Element ───────────────────────────────────────────────────────
+  // Image Element
   if (element.type === "image") {
     const { x, y, width = 240, height = 180 } = element;
     const imageUrl = element.data?.url || element.data?.src;
@@ -109,7 +109,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Freehand Path ───────────────────────────────────────────────────────
+  // Freehand Path 
   if (element.type === "draw") {
     const points = element.data?.points || [];
     if (points.length === 0) return null;
@@ -143,7 +143,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Rectangle ───────────────────────────────────────────────────────────
+  // Rectangle 
   if (element.type === "rect") {
     const { x, y, width = 140, height = 90 } = element;
     const rx = element.data?.borderRadius || 8;
@@ -198,7 +198,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Circle / Ellipse ───────────────────────────────────────────────────
+  // Circle / Ellipse
   if (element.type === "circle") {
     const { x, y, width = 110, height = 110 } = element;
     const rx = Math.max(width / 2, 5);
@@ -255,7 +255,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Diamond (Decision Node) ──────────────────────────────────────────────
+  // Diamond (Decision Node)
   if (element.type === "diamond") {
     const { x, y, width = 120, height = 120 } = element;
     const points = `${x + width / 2},${y} ${x + width},${y + height / 2} ${x + width / 2},${y + height} ${x},${y + height / 2}`;
@@ -306,7 +306,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Triangle ─────────────────────────────────────────────────────────────
+  // Triangle
   if (element.type === "triangle") {
     const { x, y, width = 120, height = 110 } = element;
     const points = `${x + width / 2},${y} ${x + width},${y + height} ${x},${y + height}`;
@@ -357,7 +357,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Frame Container ──────────────────────────────────────────────────────
+  // Frame Container
   if (element.type === "frame") {
     const { x, y, width = 320, height = 240 } = element;
     const labelText = element.data?.text || element.data?.label || "Frame Section";
@@ -399,7 +399,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Line / Arrow ────────────────────────────────────────────────────────
+  // Line / Arrow
   if (element.type === "line" || element.type === "arrow") {
     const { x, y, width = 120, height = 0 } = element;
     const x2 = x + width;
@@ -447,7 +447,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Sticky Note ─────────────────────────────────────────────────────────
+  // Sticky Note
   if (element.type === "sticky") {
     const { x, y, width = 160, height = 160 } = element;
     const stickyBg = element.data?.bgColor || "#fef08a";
@@ -500,7 +500,7 @@ export function CanvasElement({
     );
   }
 
-  // ─── Text Box ───────────────────────────────────────────────────────────
+  // Text Box
   if (element.type === "text") {
     const { x, y, width = 180, height = 50 } = element;
     const fontSize = element.data?.fontSize || 18;

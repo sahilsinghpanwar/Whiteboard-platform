@@ -19,7 +19,7 @@
 }
 .toolbar::-webkit-scrollbar { display: none; }
 
-/* ── Tool buttons ──────────────────────────────────────────────────────────── */
+/*  Tool buttons  */
 .toolGroup {
   display: flex;
   flex-direction: column;
@@ -75,7 +75,7 @@
   margin: 4px 4px;
 }
 
-/* ── Sections ──────────────────────────────────────────────────────────────── */
+/* Sections */
 .separator {
   height: 1px;
   background: rgba(255, 255, 255, 0.07);
@@ -98,7 +98,7 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* ── Color dots ────────────────────────────────────────────────────────────── */
+/* Color dots */
 .colorGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -163,7 +163,7 @@
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* ── Stroke widths ─────────────────────────────────────────────────────────── */
+/* Stroke widths */
 .widthGroup {
   display: flex;
   flex-direction: column;

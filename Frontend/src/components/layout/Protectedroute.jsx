@@ -1,13 +1,3 @@
-/**
- * ProtectedRoute
- *
- * Wraps any route that requires authentication.
- * - While the initial auth check is in-flight (isChecking), renders a
- *   full-screen spinner so we never redirect mid-check.
- * - If the user is not authenticated after the check, redirects to /login.
- * - Also initializes the Socket.io connection once authenticated.
- */
-
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
 import { useSocket } from "@/features/socket/hooks/Usesocket.js";

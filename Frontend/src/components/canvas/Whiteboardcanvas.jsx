@@ -7,7 +7,7 @@ import CursorOverlay from "./CursorOverlay";
 import PropertyPanel from "./PropertyPanel/PropertyPanel";
 import styles from "./WhiteboardCanvas.module.css";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// Constants
 const CURSOR_EMIT_THROTTLE_MS = 50;
 const HISTORY_LIMIT = 60;
 
@@ -25,7 +25,7 @@ const TOOL_CURSORS = {
   pan: "grab",
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 function fabricObjToJson(obj) {
   return {
     id: obj.id,
@@ -53,7 +53,7 @@ function applyRemoteObject(canvas, payload) {
   });
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// Component
 export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitCursor, remoteCursors }) {
   const canvasRef = useRef(null);
   const fabricRef = useRef(null);
@@ -69,7 +69,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
   const [selectedObj, setSelectedObj] = useState(null);
   const [zoom, setZoom] = useState(1);
 
-  // ── Canvas init ────────────────────────────────────────────────────────────
+  // Canvas init 
   useEffect(() => {
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: window.innerWidth,
@@ -107,7 +107,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     };
   }, []); // eslint-disable-line
 
-  // ── Tool switching ─────────────────────────────────────────────────────────
+  // Tool switching
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
@@ -134,7 +134,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     canvas.renderAll();
   }, [activeTool, strokeColor, strokeWidth]);
 
-  // ── Sync brush color/width while in pen mode ───────────────────────────────
+  // Sync brush color/width while in pen mode
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !canvas.freeDrawingBrush) return;
@@ -142,12 +142,12 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     canvas.freeDrawingBrush.width = strokeWidth;
   }, [strokeColor, strokeWidth]);
 
-  // ── Mouse events ───────────────────────────────────────────────────────────
+  // Mouse events
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    // ── Mouse Down ────────────────────────────────────────────────────────────
+    // Mouse Down
     const onMouseDown = (opt) => {
       const { e, pointer } = opt;
       const p = canvas.getPointer(e);
@@ -186,7 +186,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
       }
     };
 
-    // ── Mouse Move ────────────────────────────────────────────────────────────
+    // Mouse Move
     const onMouseMove = (opt) => {
       const { e, pointer } = opt;
       const p = canvas.getPointer(e);
@@ -220,7 +220,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
       }
     };
 
-    // ── Mouse Up ──────────────────────────────────────────────────────────────
+    // Mouse Up
     const onMouseUp = (opt) => {
       if (isPanning.current) {
         isPanning.current = false;
@@ -246,7 +246,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
       }
     };
 
-    // ── Path Created (pen tool) ───────────────────────────────────────────────
+    // Path Created (pen tool)
     const onPathCreated = ({ path }) => {
       path.id = nanoid();
       path.elementType = "pen";
@@ -255,7 +255,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
       emitDraw?.(fabricObjToJson(path));
     };
 
-    // ── Object Modified (move/resize) ─────────────────────────────────────────
+    // Object Modified (move/resize)
     const onObjectModified = (opt) => {
       const obj = opt.target;
       if (!obj || historyRef.current.locked) return;
@@ -264,7 +264,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
       emitMove?.(fabricObjToJson(obj));
     };
 
-    // ── Selection ─────────────────────────────────────────────────────────────
+    // Selection
     const onSelectionCreated = (opt) => setSelectedObj(opt.selected?.[0] || null);
     const onSelectionUpdated = (opt) => setSelectedObj(opt.selected?.[0] || null);
     const onSelectionCleared = () => setSelectedObj(null);
@@ -304,7 +304,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     };
   }, [activeTool, strokeColor, fillColor, strokeWidth, fontSize, emitDraw, emitMove, emitCursor, user]);
 
-  // ── Remote events handler (called from useBoard) ───────────────────────────
+  // Remote events handler (called from useBoard)
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
@@ -358,7 +358,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     };
   }, []);
 
-  // ─── Shape creation helpers ──────────────────────────────────────────────────
+  // Shape creation helpers
   function createShapeStart(tool, p) {
     const common = {
       id: nanoid(),
@@ -449,7 +449,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     obj.setCoords();
   }
 
-  // ─── Add Textbox ────────────────────────────────────────────────────────────
+  //  Add Textbox
   function addTextbox(canvas, p) {
     const text = new fabric.Textbox("Type here...", {
       id: nanoid(),
@@ -483,7 +483,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     setActiveTool("select");
   }
 
-  // ─── Add Sticky Note ─────────────────────────────────────────────────────────
+  // Add Sticky Note
   function addStickyNote(canvas, p) {
     const COLORS = ["#fef08a", "#86efac", "#93c5fd", "#f9a8d4", "#fca5a5"];
     const bgColor = COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -525,7 +525,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     setActiveTool("select");
   }
 
-  // ─── Delete ──────────────────────────────────────────────────────────────────
+  // Delete
   function deleteObject(canvas, obj) {
     const id = obj.id;
     canvas.remove(obj);
@@ -536,7 +536,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     setSelectedObj(null);
   }
 
-  // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
+  // Keyboard shortcuts
   function handleKeyDown(e, canvas) {
     if (!canvas) return;
     const active = canvas.getActiveObject();
@@ -598,7 +598,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     }
   }
 
-  // ─── History (undo / redo) ────────────────────────────────────────────────────
+  // History (undo / redo)
   function pushHistory(canvas) {
     if (historyRef.current.locked) return;
     const json = canvas.toJSON(["id", "elementType"]);
@@ -634,7 +634,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     });
   }
 
-  // ─── Property panel change handler ────────────────────────────────────────────
+  // Property panel change handler 
   const handlePropertyChange = useCallback((prop, value) => {
     const canvas = fabricRef.current;
     const obj = canvas?.getActiveObject();
@@ -646,7 +646,7 @@ export default function WhiteboardCanvas({ emitDraw, emitMove, emitDelete, emitC
     emitMove?.(fabricObjToJson(obj));
   }, [emitMove]);
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  // Render
   return (
     <div className={styles.canvasWrapper}>
       {/* The actual Fabric canvas */}

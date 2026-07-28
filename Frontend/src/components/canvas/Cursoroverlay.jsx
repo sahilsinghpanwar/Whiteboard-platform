@@ -1,11 +1,3 @@
-/**
- * CursorOverlay
- *
- * The signature element of this UI: every active collaborator gets a
- * floating, color-coded cursor with their name. Rendered as an absolute
- * overlay on top of the canvas, never interfering with canvas interactions.
- */
-
 import { useBoardStore } from "@/store/boardStore";
 import { useAuthStore } from "@/store/authStore";
 import styles from "./CursorOverlay.module.css";

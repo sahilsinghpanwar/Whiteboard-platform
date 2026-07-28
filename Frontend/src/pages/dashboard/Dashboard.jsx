@@ -11,7 +11,6 @@ import styles from "./Dashboardpage.module.css";
 
 const QUERY_KEYS = { BOARDS: ["boards"] };
 
-// ─── Brand Logo ───────────────────────────────────────────────────────────────
 const BrandLogo = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <rect x="2" y="2" width="9" height="9" rx="2" fill="#7C6EF8" />
@@ -21,7 +20,6 @@ const BrandLogo = () => (
   </svg>
 );
 
-// ─── Board Card ───────────────────────────────────────────────────────────────
 const BoardCard = ({ board, onDelete, isPending, onAccept, onDecline }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -114,7 +112,6 @@ const BoardCard = ({ board, onDelete, isPending, onAccept, onDecline }) => {
   );
 };
 
-// ─── Dashboard Page ───────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

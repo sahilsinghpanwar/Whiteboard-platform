@@ -1,15 +1,3 @@
-/**
- * Board Store
- *
- * Holds the active board session state:
- * - Current board metadata
- * - Canvas elements (source of truth for rendering)
- * - Undo / Redo history stack
- * - Active tool selection
- * - Active users (multiplayer presence)
- * - Canvas viewport
- */
-
 import { create } from "zustand";
 import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
 
@@ -48,7 +36,7 @@ export const useBoardStore = create((set, get) => ({
   showAI: false,
   showMembers: false,
 
-  // ─── Board ─────────────────────────────────────────────────────────────
+  // Board
   setBoard: (board, role) => {
     if (role !== undefined) {
       set({ board, role });
@@ -79,7 +67,7 @@ export const useBoardStore = create((set, get) => ({
       activeUsers: [], cursors: {}, selectedElementIds: [],
     }),
 
-  // ─── Elements ──────────────────────────────────────────────────────────
+  // Elements
   setElements: (elements) => {
     const { history, historyIndex } = get();
     const newHistory = history.slice(0, historyIndex + 1);
@@ -112,7 +100,7 @@ export const useBoardStore = create((set, get) => ({
     });
   },
 
-  // ─── Remote Socket Updates (Does not break local undo history) ───────────
+  // Remote Socket Updates (Does not break local undo history)
   applyRemoteElementUpdate: (element) =>
     set((state) => {
       const exists = state.elements.some((el) => el.id === element.id);
@@ -131,7 +119,7 @@ export const useBoardStore = create((set, get) => ({
 
   applyRemoteCanvasSave: (elements) => set({ elements }),
 
-  // ─── Undo / Redo ───────────────────────────────────────────────────────
+  // Undo / Redo
   undo: () => {
     const { history, historyIndex } = get();
     if (historyIndex > 0) {
@@ -152,15 +140,15 @@ export const useBoardStore = create((set, get) => ({
     return null;
   },
 
-  // ─── Selection ─────────────────────────────────────────────────────────
+  // Selection
   setSelectedElementIds: (ids) => set({ selectedElementIds: ids }),
   clearSelection: () => set({ selectedElementIds: [] }),
 
-  // ─── Tool ──────────────────────────────────────────────────────────────
+  // Tool
   setActiveTool: (tool) => set({ activeTool: tool }),
   setActiveShape: (shape) => set({ activeShape: shape }),
 
-  // ─── Presence ──────────────────────────────────────────────────────────
+  // Presence
   setActiveUsers: (users) => set({ activeUsers: users }),
 
   addActiveUser: (user) =>
@@ -183,10 +171,10 @@ export const useBoardStore = create((set, get) => ({
       cursors: { ...state.cursors, [userId]: data },
     })),
 
-  // ─── Viewport ──────────────────────────────────────────────────────────
+  // Viewport
   setViewport: (viewport) => set({ viewport }),
 
-  // ─── UI Panels ─────────────────────────────────────────────────────────
+  // UI Panels
   toggleChat: () => set((s) => ({ showChat: !s.showChat, showAI: false, showMembers: false })),
   toggleAI: () => set((s) => ({ showAI: !s.showAI, showChat: false, showMembers: false })),
   toggleMembers: () => set((s) => ({ showMembers: !s.showMembers, showChat: false, showAI: false })),

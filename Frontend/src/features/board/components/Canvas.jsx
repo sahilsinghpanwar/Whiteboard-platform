@@ -195,7 +195,7 @@ export function Canvas({
     }
   };
 
-  // ─── Pointer Move (Dragging & Resizing) ──────────────────────────────────
+  // Pointer Move (Dragging & Resizing)
   const handlePointerMove = (e) => {
     const coords = getCanvasCoordinates(e);
     emitCursorMove?.(coords.x, coords.y);
@@ -317,7 +317,7 @@ export function Canvas({
     }
   };
 
-  // ─── Pointer Up ──────────────────────────────────────────────────────────
+  // Pointer Up
   const handlePointerUp = () => {
     setIsPointerDown(false);
     setResizingState(null);
@@ -376,7 +376,7 @@ export function Canvas({
     }
   };
 
-  // ─── Element Direct Click, Drag & Erase Handler ──────────────────────────
+  // Element Direct Click, Drag & Erase Handler 
   const handleElementSelect = (id, isShift, pointerEvent) => {
     // Check if Eraser tool is active
     if (activeTool === CANVAS_TOOLS.ERASER) {
@@ -417,7 +417,7 @@ export function Canvas({
     }
   };
 
-  // ─── Customization Toolbar Handlers ─────────────────────────────────────
+  // Customization Toolbar Handlers
   const handleChangeColor = (color) => {
     if (!canEdit || selectedElementIds.length === 0) return;
     selectedElementIds.forEach((id) => {
@@ -465,7 +465,7 @@ export function Canvas({
     toast.success("Deleted selected item(s)");
   };
 
-  // ─── Zoom with Mouse Wheel ───────────────────────────────────────────────
+  // Zoom with Mouse Wheel
   const handleWheel = (e) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
@@ -487,7 +487,7 @@ export function Canvas({
     });
   };
 
-  // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
@@ -526,7 +526,7 @@ export function Canvas({
       className="w-full h-full relative overflow-hidden bg-[#F7F8FC] select-none cursor-crosshair font-sans"
       onWheel={handleWheel}
     >
-      {/* ── Floating Selection Customization Bar ─────────────────────────────── */}
+      {/* Floating Selection Customization Bar */}
       <AnimatePresence>
         {selectedElementIds.length > 0 && canEdit && (
           <motion.div

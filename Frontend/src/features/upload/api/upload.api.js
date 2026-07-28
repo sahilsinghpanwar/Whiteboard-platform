@@ -1,7 +1,3 @@
-/**
- * Upload API
- */
-
 import api from "@/shared/api/axios.js";
 
 export const uploadApi = {

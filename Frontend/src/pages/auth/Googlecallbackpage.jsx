@@ -1,16 +1,3 @@
-/**
- * GoogleCallbackPage
- *
- * The frontend destination after Google OAuth completes.
- * Backend redirects to: /auth/google/success?token=<accessToken>
- *
- * This page:
- * 1. Reads the token from the URL
- * 2. Stores token in localStorage and Zustand store
- * 3. Fetches the user profile using that token
- * 4. Redirects to dashboard
- */
-
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";

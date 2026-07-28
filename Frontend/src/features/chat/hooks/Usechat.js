@@ -1,10 +1,3 @@
-/**
- * useChat
- *
- * Connects to the /chat namespace, loads message history,
- * handles real-time messages, typing indicators, and message deletion.
- */
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_URL } from "@/shared/constants/index.js";

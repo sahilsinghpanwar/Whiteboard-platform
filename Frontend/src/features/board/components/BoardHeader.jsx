@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-/* ── Presence Avatar ─────────────────────────────────────────── */
+/* Presence Avatar */
 const AVATAR_COLORS = [
   "#6D5EF7", "#10B981", "#F59E0B", "#3B82F6",
   "#EF4444", "#8B5CF6", "#14B8A6", "#F97316",
@@ -29,7 +29,7 @@ function PresenceAvatar({ user }) {
   );
 }
 
-/* ── Top Nav Button ──────────────────────────────────────────── */
+/* Top Nav Button */
 function NavBtn({ active, onClick, title: tip, children }) {
   return (
     <button
@@ -50,7 +50,7 @@ function NavBtn({ active, onClick, title: tip, children }) {
   );
 }
 
-/* ── Board Header ─────────────────────────────────────────────── */
+/* Board Header */
 export function BoardHeader({ boardId, emitCanvasSave }) {
   const navigate = useNavigate();
   const {

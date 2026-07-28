@@ -11,7 +11,7 @@ import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import styles from "./BoardTopbar.module.css";
 
-// ─── Export helper ─────────────────────────────────────────────────────────
+//  Export helper
 const triggerDownload = (blob, filename) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -21,7 +21,7 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-// ─── Members Modal ─────────────────────────────────────────────────────────
+//  Members Modal 
 const MembersModal = ({ boardId, board, role, isOpen, onClose }) => {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");

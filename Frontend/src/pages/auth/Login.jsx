@@ -26,7 +26,6 @@ const BrandLogo = () => (
   </svg>
 );
 
-// ─── Reusable Field ───────────────────────────────────────────────────────────
 
 const Field = ({ label, error, children }) => (
   <div className={styles.field}>
@@ -44,7 +43,6 @@ const Field = ({ label, error, children }) => (
   </div>
 );
 
-// ─── Left Panel (shared branding) ────────────────────────────────────────────
 
 const LeftPanel = () => (
   <div className={styles.leftPanel}>
@@ -106,7 +104,6 @@ const LeftPanel = () => (
   </div>
 );
 
-// ─── Login Page ───────────────────────────────────────────────────────────────
 
 const LoginPage = () => {
   const navigate = useNavigate();

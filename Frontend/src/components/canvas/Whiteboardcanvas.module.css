@@ -16,7 +16,7 @@
   touch-action: none;
 }
 
-/* ── Zoom badge ────────────────────────────────────────────────────────────── */
+/* Zoom badge */
 .zoomBadge {
   position: fixed;
   bottom: 20px;

@@ -1,8 +1,3 @@
-/**
- * AI API
- * Maps to backend /api/v1/boards/:boardId/ai routes.
- */
-
 import api from "@/shared/api/axios.js";
 
 export const aiApi = {

@@ -12,7 +12,7 @@
   position: relative;
 }
 
-/* ─── Left ────────────────────────────────────────────────────────────────── */
+/* Left */
 .left {
   display: flex;
   align-items: center;
@@ -57,7 +57,7 @@
 .role_editor { background: var(--success-dim); color: var(--success); }
 .role_viewer { background: var(--bg-elevated); color: var(--text-tertiary); border: 1px solid var(--border); }
 
-/* ─── Center ──────────────────────────────────────────────────────────────── */
+/* Center */
 .center {
   display: flex;
   align-items: center;
@@ -82,7 +82,7 @@
   margin-left: 0;
 }
 
-/* ─── Right ───────────────────────────────────────────────────────────────── */
+/* Right */
 .right {
   display: flex;
   align-items: center;
@@ -131,7 +131,7 @@
 
 .iconBtnActive:hover { background: var(--accent-dim-hover); color: var(--accent-hover); }
 
-/* ─── Members Modal ──────────────────────────────────────────────────────── */
+/*  Members Modal */
 .memberSection {
   display: flex;
   flex-direction: column;

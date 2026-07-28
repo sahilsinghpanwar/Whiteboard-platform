@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-/* ── Code block with 1-click Copy ───────────────────────────────── */
+/*  Code block with 1-click Copy */
 function CodeBlock({ content }) {
   const [copied, setCopied] = React.useState(false);
 
@@ -58,7 +58,7 @@ function CodeBlock({ content }) {
   );
 }
 
-/* ── User Bubble ────────────────────────────────────────────────── */
+/* User Bubble */
 function UserBubble({ content }) {
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
@@ -79,7 +79,7 @@ function UserBubble({ content }) {
   );
 }
 
-/* ── AI Response Bubble with Canvas Badges ───────────────────────── */
+/* AI Response Bubble with Canvas Badges */
 function AIBubble({ msg, onInsert }) {
   const { content, summary, isError } = msg;
 
@@ -163,7 +163,7 @@ function AIBubble({ msg, onInsert }) {
   );
 }
 
-/* ── Main AI Sidebar Component ─────────────────────────────────── */
+/* Main AI Sidebar Component */
 export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave }) {
   const {
     showAI,
@@ -209,7 +209,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={card}
     >
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
         padding: "14px 18px",
         borderBottom: "1px solid #F0F1F5",
@@ -277,7 +277,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         </div>
       </div>
 
-      {/* ── Streaming / Processing Step Banner ──────────────────── */}
+      {/* Streaming / Processing Step Banner */}
       {streamingStep && (
         <div style={{
           padding: "8px 16px",
@@ -292,7 +292,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         </div>
       )}
 
-      {/* ── Messages List ───────────────────────────────────────── */}
+      {/* Messages List */}
       <div style={{
         flex: 1, overflowY: "auto", overflowX: "hidden",
         padding: "16px 16px 6px",
@@ -337,7 +337,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         <div ref={messagesEndRef} style={{ height: 4 }} />
       </div>
 
-      {/* ── Input Footer ─────────────────────────────────────────── */}
+      {/* Input Footer */}
       <form
         onSubmit={(e) => { e.preventDefault(); handleSendPrompt(); }}
         style={{

@@ -5,7 +5,6 @@ import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "@/components/layout/Protectedroute.jsx";
 import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
 
-// Lazy-loaded pages for code splitting
 const LandingPage = lazy(() => import("@/pages/Landing.jsx"));
 const LoginPage = lazy(() => import("@/pages/auth/Login.jsx"));
 const RegisterPage = lazy(() => import("@/pages/auth/Register.jsx"));
@@ -16,7 +15,7 @@ const BoardPage = lazy(() => import("@/pages/Whiteboard.jsx"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5, 
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -48,10 +47,6 @@ const PageLoader = () => (
 
 const App = () => {
   const { checkAuth, isChecking } = useAuthStore();
-
-  // On every page load/refresh, validate the stored token once.
-  // Until this resolves, we show a spinner so ProtectedRoute never
-  // sees isAuthenticated=false mid-check and incorrectly redirects.
   useEffect(() => {
     checkAuth();
   }, []);

@@ -7,20 +7,20 @@ import { boardApi } from "../api/Board.api.js";
 import { X, Link2, Check, Send, Crown, Pencil, Eye, Wifi } from "lucide-react";
 import toast from "react-hot-toast";
 
-/* ── Avatar colors ────────────────────────────────────────────────── */
+/*  Avatar colors */
 const AVATAR_COLORS = [
   "#6D5EF7", "#10B981", "#F59E0B", "#3B82F6",
   "#EF4444", "#8B5CF6", "#14B8A6", "#F97316",
 ];
 
-/* ── Role definitions ──────────────────────────────────────────── */
+/* Role definitions */
 const ROLE_CFG = {
   owner:  { label: "Owner",  Icon: Crown,  bg: "#FEF3C7", color: "#D97706", border: "#FDE68A" },
   editor: { label: "Editor", Icon: Pencil, bg: "#EDE9FE", color: "#6D5EF7", border: "#C4B5FD" },
   viewer: { label: "Viewer", Icon: Eye,    bg: "#F3F4F6", color: "#6B7280", border: "#E5E7EB" },
 };
 
-/* ── RoleBadge ───────────────────────────────────────────────── */
+/* RoleBadge */
 function RoleBadge({ role }) {
   const cfg = ROLE_CFG[role] || ROLE_CFG.editor;
   return (
@@ -34,7 +34,7 @@ function RoleBadge({ role }) {
   );
 }
 
-/* ── PermissionToggle ──────────────────────────────────────────── */
+/* PermissionToggle */
 function PermissionToggle({ memberId, currentRole, onRoleChange, isChanging }) {
   const isEditor = currentRole === "editor";
 
@@ -106,7 +106,7 @@ function PermissionToggle({ memberId, currentRole, onRoleChange, isChanging }) {
   );
 }
 
-/* ── Avatar ────────────────────────────────────────────────────── */
+/* Avatar */
 function UserAvatar({ name = "U", colorIndex = 0, isOnline = false }) {
   const bg = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
   return (
@@ -127,10 +127,10 @@ function UserAvatar({ name = "U", colorIndex = 0, isOnline = false }) {
   );
 }
 
-/* ── Section divider ──────────────────────────────────────────── */
+/* Section divider */
 const Divider = () => <div style={{ height: 1, backgroundColor: "#F0F1F5", margin: "0 0" }} />;
 
-/* ── Main Sidebar ──────────────────────────────────────────── */
+/* Main Sidebar */
 export function MembersSidebar() {
   const { boardId } = useParams();
   const { showMembers, toggleMembers, board, activeUsers, role: currentRole } = useBoardStore();
@@ -292,7 +292,7 @@ export function MembersSidebar() {
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={card}
     >
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{ padding: "16px 20px", borderBottom: "1px solid #F0F1F5", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>
           Share &amp; Members
@@ -307,7 +307,7 @@ export function MembersSidebar() {
         </button>
       </div>
 
-      {/* ── Scrollable body ────────────────────────────────────── */}
+      {/* Scrollable body */}
       <div style={scrollBody}>
 
         {/* Share this board */}

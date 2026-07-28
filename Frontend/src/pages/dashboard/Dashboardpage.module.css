@@ -1,9 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Dashboard Page — Matching Landing Page Design Tokens
-   Light-mode, clean card grid, subtle borders, polished header
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Root Container ─────────────────────────────────────────────────────── */
 .page {
   --db-accent:    #7C6EF8;
   --db-accent-lt: #9B8BFF;
@@ -26,7 +20,6 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Header ─────────────────────────────────────────────────────────────── */
 .header {
   position: sticky;
   top: 0;
@@ -118,7 +111,6 @@
   background: rgba(239, 68, 68, 0.05);
 }
 
-/* ─── Main Section ───────────────────────────────────────────────────────── */
 .main {
   flex: 1;
   padding: 44px 32px 64px;
@@ -129,7 +121,6 @@
   margin: 0 auto;
 }
 
-/* ─── Top Banner / Action Bar ────────────────────────────────────────────── */
 .topRow {
   display: flex;
   align-items: flex-end;
@@ -230,7 +221,6 @@
   box-shadow: 0 6px 20px rgba(124, 110, 248, 0.45);
 }
 
-/* ─── Board Grid ─────────────────────────────────────────────────────────── */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -410,7 +400,6 @@
   background: rgba(239, 68, 68, 0.08);
 }
 
-/* ─── Empty & Skeleton Loading ────────────────────────────────────────────── */
 .emptyState {
   display: flex;
   flex-direction: column;
@@ -469,7 +458,6 @@
   50% { opacity: 0.45; }
 }
 
-/* ─── Modal Custom Styling ────────────────────────────────────────────────── */
 .modalContent {
   border-radius: 16px !important;
   padding: 24px !important;
@@ -559,7 +547,6 @@
   transform: translateY(-1px);
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .headerInner, .main { padding-left: 20px; padding-right: 20px; }
   .topRow { flex-direction: column; align-items: stretch; }

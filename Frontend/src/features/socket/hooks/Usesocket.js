@@ -1,11 +1,3 @@
-/**
- * useSocket
- *
- * Manages the Socket.io collaboration connection lifecycle.
- * Connects once when the user is authenticated, disconnects on logout.
- * Keeps the connection persistent across route changes.
- */
-
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_URL } from "@/shared/constants/index.js";

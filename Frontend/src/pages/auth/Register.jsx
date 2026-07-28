@@ -44,7 +44,6 @@ const Field = ({ label, error, children }) => (
   </div>
 );
 
-// ─── Left Panel (shared branding) ────────────────────────────────────────────
 
 const LeftPanel = () => (
   <div className={styles.leftPanel}>
@@ -106,7 +105,6 @@ const LeftPanel = () => (
   </div>
 );
 
-// ─── Register Page ────────────────────────────────────────────────────────────
 
 const RegisterPage = () => {
   const navigate = useNavigate();

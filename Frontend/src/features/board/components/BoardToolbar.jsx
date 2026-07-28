@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-/* ── Color constants ─────────────────────────────────────────── */
+/*  Color constants  */
 const STICKY_COLORS = [
   { name: "Yellow", bg: "#fef08a", text: "#1e293b" },
   { name: "Blue",   bg: "#bae6fd", text: "#0f172a" },
@@ -25,7 +25,7 @@ const STROKE_COLORS = [
   "#10B981", "#F59E0B", "#EC4899",
 ];
 
-/* ── Tool button ─────────────────────────────────────────────── */
+/* Tool button  */
 function ToolBtn({ active, onClick, title: tip, children, className = "" }) {
   return (
     <button
@@ -46,10 +46,10 @@ function ToolBtn({ active, onClick, title: tip, children, className = "" }) {
   );
 }
 
-/* ── Divider ─────────────────────────────────────────────────── */
+/*  Divider  */
 const Divider = () => <div className="w-6 h-px bg-[#E8E9F0] my-0.5" />;
 
-/* ── Board Toolbar ───────────────────────────────────────────── */
+/* Board Toolbar  */
 export function BoardToolbar({
   strokeColor, setStrokeColor,
   strokeWidth, setStrokeWidth,

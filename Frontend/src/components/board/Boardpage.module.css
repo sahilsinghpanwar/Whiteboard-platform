@@ -12,7 +12,7 @@
   overflow: hidden;
 }
 
-/* ─── Keyboard hint ──────────────────────────────────────────────────────── */
+/*  Keyboard hint  */
 .hint {
   position: absolute;
   bottom: 12px;

@@ -1,17 +1,3 @@
-/**
- * BoardPage
- *
- * Assembles the entire board experience:
- * [TopBar] + [Canvas + Toolbar + CursorOverlay] + [Chat | AI Panel]
- *
- * This is the single place that connects:
- * - useBoard hook (socket events ↔ board store)
- * - WhiteboardCanvas (Fabric.js rendering)
- * - BoardTopbar (navigation + actions)
- * - ChatPanel / AIPanel (right-side panels)
- * - CursorOverlay (multiplayer presence)
- */
-
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";

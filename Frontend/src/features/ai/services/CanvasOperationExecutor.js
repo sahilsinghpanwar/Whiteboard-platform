@@ -1,10 +1,3 @@
-/**
- * Canvas Operation Executor
- * Translates AI-generated structured operations into real Fabric/Zustand canvas elements.
- * Handles element creation, position layout, color styling, connector wiring,
- * text updates, alignments, and socket collaboration emission.
- */
-
 import { useBoardStore } from '@/features/board/store/Boardstore.js';
 
 /* Palette mappings */
@@ -52,14 +45,14 @@ export const CanvasOperationExecutor = {
     let modifiedCount = 0;
     let deletedCount = 0;
 
-    const createdNodePosMap = new Map(); // id -> { x, y, width, height }
+    const createdNodePosMap = new Map(); 
 
     operations.forEach((op, index) => {
       const type = (op.type || 'create').toLowerCase();
       const objType = (op.object || 'rect').toLowerCase();
       const targetId = String(op.targetId || op.id || '');
 
-      // ── 1. CREATE ──────────────────────────────────────────────────────────
+      // 1. CREATE
       if (type === 'create') {
         const id = op.id ? String(op.id) : `ai_el_${Date.now()}_${index}`;
         const posX = typeof op.x === 'number' ? op.x : 140 + (index % 3) * 200;
@@ -103,7 +96,7 @@ export const CanvasOperationExecutor = {
         createdCount++;
       }
 
-      // ── 2. MODIFY ──────────────────────────────────────────────────────────
+      // 2. MODIFY
       else if (type === 'modify') {
         const targets = targetId ? [targetId] : selectedElementIds;
         targets.forEach((tId) => {
@@ -131,7 +124,7 @@ export const CanvasOperationExecutor = {
         });
       }
 
-      // ── 3. DELETE ──────────────────────────────────────────────────────────
+      // 3. DELETE
       else if (type === 'delete') {
         const idsToDelete = targetId ? [targetId] : selectedElementIds;
         if (idsToDelete.length > 0) {
@@ -141,7 +134,7 @@ export const CanvasOperationExecutor = {
         }
       }
 
-      // ── 4. CONNECT ─────────────────────────────────────────────────────────
+      // 4. CONNECT
       else if (type === 'connect' && op.from && op.to) {
         const fromPos = createdNodePosMap.get(String(op.from)) || elementMap.get(String(op.from));
         const toPos = createdNodePosMap.get(String(op.to)) || elementMap.get(String(op.to));
@@ -172,7 +165,7 @@ export const CanvasOperationExecutor = {
         createdCount++;
       }
 
-      // ── 5. ALIGN / ORGANIZE ────────────────────────────────────────────────
+      // 5. ALIGN / ORGANIZE
       else if (type === 'align') {
         const idsToAlign = selectedElementIds.length > 1 ? selectedElementIds : store.elements.map((e) => e.id);
         const targetElements = store.elements.filter((e) => idsToAlign.includes(e.id));

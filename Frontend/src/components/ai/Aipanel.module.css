@@ -11,7 +11,7 @@
   z-index: 15;
 }
 
-/* ─── Header ─────────────────────────────────────────────────────────────── */
+/*  Header  */
 .header {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -30,7 +30,7 @@
   color: var(--text-primary);
 }
 
-/* ─── Tabs ────────────────────────────────────────────────────────────────── */
+/*  Tabs  */
 .tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -59,7 +59,7 @@
 
 .activeTab:hover { background: var(--accent-dim-hover); }
 
-/* ─── Body ────────────────────────────────────────────────────────────────── */
+/*  Body  */
 .body {
   flex: 1;
   overflow-y: auto;
@@ -90,7 +90,7 @@
 .textarea::placeholder { color: var(--text-tertiary); }
 .textarea:focus { border-color: var(--accent); }
 
-/* ─── Results ────────────────────────────────────────────────────────────── */
+/*  Results  */
 .results {
   display: flex;
   flex-direction: column;
@@ -118,7 +118,7 @@
 }
 .clearBtn:hover { color: var(--text-primary); }
 
-/* ─── Brainstorm ─────────────────────────────────────────────────────────── */
+/*  Brainstorm  */
 .resultList { display: flex; flex-direction: column; gap: 8px; }
 
 .ideaCard {
@@ -152,7 +152,7 @@
   line-height: 1.5;
 }
 
-/* ─── Diagram ────────────────────────────────────────────────────────────── */
+/*  Diagram  */
 .resultCode { display: flex; flex-direction: column; gap: 8px; }
 
 .resultHint {
@@ -190,7 +190,7 @@
   white-space: nowrap;
 }
 
-/* ─── Summary ────────────────────────────────────────────────────────────── */
+/*  Summary  */
 .summaryResult { display: flex; flex-direction: column; gap: 12px; }
 
 .summarySection { display: flex; flex-direction: column; gap: 6px; }
@@ -226,7 +226,7 @@
   line-height: 1.5;
 }
 
-/* ─── Improve ────────────────────────────────────────────────────────────── */
+/*  Improve  */
 .improveResult { display: flex; flex-direction: column; gap: 10px; }
 
 .priorityCard {

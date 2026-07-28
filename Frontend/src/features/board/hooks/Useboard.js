@@ -1,10 +1,3 @@
-/**
- * useBoard
- *
- * Joins a board socket room and wires all collaboration events
- * to the board store. Used by the BoardPage.
- */
-
 import { useEffect, useCallback } from "react";
 import { useSocketStore } from "@/features/socket/store/Socketstore.js";
 import { useBoardStore } from "../store/Boardstore.js";
@@ -31,7 +24,7 @@ export const useBoard = (boardId) => {
     setBoard,
   } = useBoardStore();
 
-  // ─── Join / Leave room on mount / unmount ─────────────────────────────────
+  // Join / Leave room on mount / unmount
   useEffect(() => {
     if (!socket || !boardId) return;
 
@@ -50,7 +43,7 @@ export const useBoard = (boardId) => {
     };
   }, [socket, boardId]);
 
-  // ─── Subscribe to collaboration socket events ─────────────────────────────
+  // Subscribe to collaboration socket events
   useEffect(() => {
     if (!socket) return;
 
@@ -154,7 +147,7 @@ export const useBoard = (boardId) => {
     };
   }, [socket]);
 
-  // ─── Event Emission Helpers ────────────────────────────────────────────────
+  // Event Emission Helpers
   const emitElementUpdate = useCallback(
     (element) => {
       if (!socket || !boardId || !element) return;

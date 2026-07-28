@@ -1,9 +1,3 @@
-/**
- * useAIWorkspace Hook
- * Custom hook encapsulating AI Board Agent state, conversation memory,
- * simulated streaming progress steps, API requests, and operation execution.
- */
-
 import { useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useBoardStore } from "@/features/board/store/Boardstore.js";

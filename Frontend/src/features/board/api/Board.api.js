@@ -1,8 +1,3 @@
-/**
- * Board API
- * Maps 1:1 to backend /api/v1/boards routes.
- */
-
 import api from "@/shared/api/axios.js";
 
 export const boardApi = {

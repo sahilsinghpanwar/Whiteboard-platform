@@ -7,7 +7,7 @@ import { useChat } from "@/features/chat/hooks/Usechat.js";
 import { MessageSquare, Send, X, Trash2, Wifi } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-/* ── Avatar colors ────────────────────────────────────────────── */
+/* Avatar colors */
 const PALETTE = [
   "#6D5EF7", "#10B981", "#F59E0B", "#3B82F6",
   "#EF4444", "#8B5CF6", "#14B8A6", "#F97316",
@@ -22,7 +22,7 @@ function initials(name = "") {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 }
 
-/* ── Micro Avatar ───────────────────────────────────────────────── */
+/* Micro Avatar */
 function MiniAvatar({ name }) {
   return (
     <div
@@ -40,7 +40,7 @@ function MiniAvatar({ name }) {
   );
 }
 
-/* ── Typing dots ────────────────────────────────────────────────── */
+/* Typing dots */
 function TypingDots() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 0" }}>
@@ -59,7 +59,7 @@ function TypingDots() {
   );
 }
 
-/* ── Empty state ────────────────────────────────────────────────── */
+/* Empty state */
 function EmptyState() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, padding: "20px 0", textAlign: "center" }}>
@@ -79,7 +79,7 @@ function EmptyState() {
   );
 }
 
-/* ── Main ChatSidebar ─────────────────────────────────────────── */
+/* Main ChatSidebar */
 export function ChatSidebar() {
   const { boardId } = useParams();
   const { showChat, toggleChat } = useBoardStore();
@@ -147,7 +147,7 @@ export function ChatSidebar() {
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={card}
     >
-      {/* ── Header ───────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
         padding: "16px 20px",
         borderBottom: "1px solid #F0F1F5",
@@ -194,7 +194,7 @@ export function ChatSidebar() {
         </div>
       )}
 
-      {/* ── Messages List ────────────────────────────────────── */}
+      {/* Messages List */}
       <div style={{
         flex: 1, overflowY: "auto", overflowX: "hidden",
         padding: "16px 20px",
@@ -323,7 +323,7 @@ export function ChatSidebar() {
         <div ref={messagesEndRef} style={{ height: 4 }} />
       </div>
 
-      {/* ── Input Footer ─────────────────────────────────────── */}
+      {/* Input Footer */}
       <form
         onSubmit={handleSend}
         style={{

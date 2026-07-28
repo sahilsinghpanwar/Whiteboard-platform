@@ -1,7 +1,7 @@
 import { useBoardStore } from "../../store/boardStore";
 import styles from "./CanvasToolbar.module.css";
 
-// ─── Tool definitions ──────────────────────────────────────────────────────────
+//  Tool definitions 
 const TOOLS = [
   { id: "select",  icon: "⬡", label: "Select",   key: "V", group: "select" },
   { id: "pan",     icon: "✥", label: "Pan",       key: "H", group: "select" },
@@ -18,7 +18,7 @@ const TOOLS = [
   { id: "sticky",  icon: "🗒", label: "Sticky",    key: "S", group: "text" },
 ];
 
-// ─── Color presets ─────────────────────────────────────────────────────────────
+//  Color presets 
 const STROKE_COLORS = [
   "#ffffff", "#f87171", "#fb923c", "#fbbf24",
   "#4ade80", "#60a5fa", "#a78bfa", "#f472b6",
@@ -41,7 +41,7 @@ export default function CanvasToolbar() {
 
   return (
     <aside className={styles.toolbar}>
-      {/* ── Tools ─────────────────────────────────────────────────────────── */}
+      {/* Tools */}
       <div className={styles.toolGroup}>
         {TOOLS.map((tool, i) =>
           tool === null ? (
@@ -63,7 +63,7 @@ export default function CanvasToolbar() {
 
       <div className={styles.separator} />
 
-      {/* ── Stroke color ──────────────────────────────────────────────────── */}
+      {/* Stroke color */}
       <div className={styles.section}>
         <span className={styles.sectionLabel}>Stroke</span>
         <div className={styles.colorGrid}>
@@ -93,7 +93,7 @@ export default function CanvasToolbar() {
 
       <div className={styles.separator} />
 
-      {/* ── Fill color ────────────────────────────────────────────────────── */}
+      {/*  Fill color  */}
       <div className={styles.section}>
         <span className={styles.sectionLabel}>Fill</span>
         <div className={styles.colorGrid}>
@@ -116,7 +116,7 @@ export default function CanvasToolbar() {
 
       <div className={styles.separator} />
 
-      {/* ── Stroke width ──────────────────────────────────────────────────── */}
+      {/* Stroke width */}
       <div className={styles.section}>
         <span className={styles.sectionLabel}>Width</span>
         <div className={styles.widthGroup}>
