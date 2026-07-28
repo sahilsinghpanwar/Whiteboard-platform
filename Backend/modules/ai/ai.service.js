@@ -69,10 +69,7 @@ const getBoardCanvas = async (boardId, userId) => {
   return board.canvas;
 };
 
-/**
- * Primary Agent Workflow:
- * Full board context + selection awareness + prompt history + operations generation
- */
+
 export const processAgentRequest = async (boardId, userId, prompt, selectedElementIds = [], conversationHistory = []) => {
   if (!prompt?.trim()) throw ApiError.badRequest('Prompt is required');
 
@@ -92,7 +89,6 @@ export const processAgentRequest = async (boardId, userId, prompt, selectedEleme
   return parseAgentResponse(rawText);
 };
 
-// ── Legacy Helpers ────────────────────────────────────────────────────────
 
 export const brainstorm = async (boardId, userId, topic) => {
   if (!topic?.trim()) throw ApiError.badRequest('A topic is required for brainstorming');

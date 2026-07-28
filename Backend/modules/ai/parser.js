@@ -1,12 +1,10 @@
 import { ApiError } from '../../core/utils/ApiError.js';
 
-// ── Base JSON Extractor ──────────────────────────────────────────────────
 const extractJSON = (text) => {
   if (!text || typeof text !== 'string') {
     throw ApiError.internal('Empty response received from AI');
   }
 
-  // Strip markdown code fences if present
   let cleaned = text
     .replace(/```(?:json)?/gi, '')
     .replace(/```/g, '')
@@ -15,27 +13,24 @@ const extractJSON = (text) => {
   try {
     return JSON.parse(cleaned);
   } catch {
-    // Try extracting JSON object/array block with regex
     const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[0]);
       } catch {
-        // Fall through
+      
       }
     }
     throw ApiError.internal('AI returned an unexpected response format. Please try again.');
   }
 };
 
-// ── Agent Master Response Parser ─────────────────────────────────────────
 
 export const parseAgentResponse = (rawText) => {
   let parsed;
   try {
     parsed = extractJSON(rawText);
   } catch (err) {
-    // Fallback if model outputs plain text markdown instead of structured JSON
     return {
       message: rawText.trim(),
       summary: 'Processed request',
@@ -126,7 +121,7 @@ export const parseAgentResponse = (rawText) => {
   };
 };
 
-// ── Legacy Parsers ───────────────────────────────────────────────────────
+//  Legacy Parsers 
 
 export const parseBrainstormResponse = (text) => {
   const agentRes = parseAgentResponse(text);

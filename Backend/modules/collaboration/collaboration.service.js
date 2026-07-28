@@ -3,7 +3,7 @@ import { logger } from "../../core/logger/logger.js";
 
 const rooms = new Map();
 
-// ─── Room Registry ─────────────────────────────────────────────────────────
+//  Room Registry 
 
 export const addToRoom = (boardId, socketId, user) => {
   if (!rooms.has(boardId)) rooms.set(boardId, new Map());
@@ -87,7 +87,7 @@ export const canUserEdit = async (boardId, userId) => {
   }
 };
 
-// ─── Canvas Persistence ───────────────────────────────────────────────────
+//  Canvas Persistence 
 
 export const persistElementUpsert = async (boardId, userId, element) => {
   try {

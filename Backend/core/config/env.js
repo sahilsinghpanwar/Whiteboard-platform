@@ -35,13 +35,12 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  
   console.error("  FATAL: Invalid environment variables");
-  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  
   parsedEnv.error.issues.forEach((issue) => {
     console.error(`  ✗ ${issue.path.join(".")}: ${issue.message}`);
   });
-  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   process.exit(1);
 }
 

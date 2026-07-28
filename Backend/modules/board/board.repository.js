@@ -33,18 +33,11 @@ export const existsByTitleAndOwner = (title, ownerId) =>
 // Write Operations
 export const createBoard = (data) => Board.create(data);
 
-/**
-  Update board metadata (title, description, isPublic, thumbnail).
-  Never used to update canvas — that has its own method.
- */
+
 export const updateBoard = (boardId, updates) =>
   Board.findByIdAndUpdate(boardId, { $set: updates }, { returnDocument: 'after', runValidators: true }).lean();
 
-/*
-  Atomically update the entire canvas state.
-  Called by the collaboration socket after debouncing client updates.
-  Also bumps lastActivityAt so the dashboard sorts correctly.
- */
+
 export const updateCanvas = (boardId, canvas) =>
   Board.findByIdAndUpdate(
     boardId,
@@ -52,11 +45,7 @@ export const updateCanvas = (boardId, canvas) =>
     { returnDocument: 'after' }
   ).lean();
 
-/*
-  Add or update a single element on the canvas without rewriting the whole state.
-  Uses positional operator — efficient for real-time single-element edits.
-  If element.id already exists, replaces it; if not, pushes it.
- */
+
 export const upsertElement = async (boardId, element) => {
   const existing = await Board.exists({
     _id: boardId,
@@ -86,9 +75,7 @@ export const upsertElement = async (boardId, element) => {
   ).lean();
 };
 
-/**
-  Remove one or more elements by their client-side IDs.
- */
+
 export const deleteElements = (boardId, elementIds) =>
   Board.findByIdAndUpdate(
     boardId,
@@ -99,10 +86,7 @@ export const deleteElements = (boardId, elementIds) =>
     { returnDocument: 'after' }
   ).lean();
 
-/**
-  Add a member to the board.
-  Prevents duplicates via $addToSet (won't add if userId already in members).
- */
+
 export const addMember = (boardId, userId, role = 'editor') =>
   Board.findByIdAndUpdate(
     boardId,
@@ -110,9 +94,7 @@ export const addMember = (boardId, userId, role = 'editor') =>
     { returnDocument: 'after' }
   ).lean();
 
-/**
-  Update an existing member's status (e.g. accepted).
- */
+
 export const updateMemberStatus = (boardId, userId, status) =>
   Board.findOneAndUpdate(
     { _id: boardId, 'members.userId': userId },
@@ -120,9 +102,7 @@ export const updateMemberStatus = (boardId, userId, status) =>
     { returnDocument: 'after' }
   ).lean();
 
-/**
-  Update an existing member's role.
- */
+
 export const updateMemberRole = (boardId, userId, role) =>
   Board.findOneAndUpdate(
     { _id: boardId, 'members.userId': userId },
@@ -130,9 +110,7 @@ export const updateMemberRole = (boardId, userId, role) =>
     { returnDocument: 'after' }
   ).lean();
 
-/**
- * Remove a member from the board.
- */
+
 export const removeMember = (boardId, userId) =>
   Board.findByIdAndUpdate(
     boardId,
@@ -140,15 +118,10 @@ export const removeMember = (boardId, userId) =>
     { returnDocument: 'after' }
   ).lean();
 
-/**
-  Permanently delete a board and all its data.
-  Only the owner can do this — enforced in the service layer.
- */
+
 export const deleteBoard = (boardId) =>
   Board.findByIdAndDelete(boardId);
 
-/**
-  Update the board thumbnail URL (called after export/snapshot).
- */
+
 export const updateThumbnail = (boardId, thumbnailUrl) =>
   Board.findByIdAndUpdate(boardId, { $set: { thumbnail: thumbnailUrl } }).lean();

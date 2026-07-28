@@ -115,9 +115,6 @@ export const declineInvitation = async (req, res) => {
   );
   const io = req.app.get('io');
   if (io) {
-    // Decline just returns a message, not a board, so we shouldn't emit the message as a board.
-    // However, if we wanted to update the board state for others, we'd need to fetch the updated board here.
-    // For now, let's fetch it and emit it.
     const updatedBoard = await boardService.getBoardById(req.params.boardId, req.user._id);
     io.of('/collaboration').to(`board:${updatedBoard._id}`).emit('board:updated', { board: updatedBoard });
   }

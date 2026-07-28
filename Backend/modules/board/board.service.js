@@ -62,9 +62,7 @@ const assertPermission = (board, userId, minimumRole = 'viewer') => {
 
 // Board CRUD
 
-/**
- * Create a new board owned by the requesting user.
- */
+
 export const createBoard = async (userId, { title, description, isPublic }) => {
   const board = await boardRepo.createBoard({
     title,
@@ -77,16 +75,11 @@ export const createBoard = async (userId, { title, description, isPublic }) => {
   return boardRepo.findByIdWithMembers(board._id);
 };
 
-/**
- * Get all boards for the dashboard (owned + joined), without canvas data.
- */
+
 export const getDashboardBoards = (userId) =>
   boardRepo.findDashboardBoards(userId);
 
-/**
- * Get full board data (including canvas elements).
- * Accessible to: owner, members, and any user if board.isPublic.
- */
+
 export const getBoardById = async (boardId, userId) => {
   const board = await boardRepo.findByIdWithMembers(boardId);
   if (!board) throw ApiError.notFound('Board not found');
@@ -98,10 +91,7 @@ export const getBoardById = async (boardId, userId) => {
   return board;
 };
 
-/**
- * Update board metadata (title, description, isPublic).
- * Only owner and editors can update. Viewers cannot.
- */
+
 export const updateBoard = async (boardId, userId, updates) => {
   const board = await getBoardOrThrow(boardId);
   assertPermission(board, userId, 'editor');
@@ -110,9 +100,7 @@ export const updateBoard = async (boardId, userId, updates) => {
   return boardRepo.findByIdWithMembers(boardId);
 };
 
-/**
- * Delete a board permanently. Only the owner can do this.
- */
+
 export const deleteBoard = async (boardId, userId) => {
   const board = await getBoardOrThrow(boardId);
 
@@ -123,14 +111,7 @@ export const deleteBoard = async (boardId, userId) => {
   await boardRepo.deleteBoard(boardId);
 };
 
-// Member Management
 
-/**
- * Invite a user to the board by email.
- * Looks up the invitee by email
- * Checks they aren't already a member or the owner
- * Adds them with the specified role
- */
 export const inviteMember = async (boardId, requesterId, { email, role }) => {
   const board = await getBoardOrThrow(boardId);
   assertPermission(board, requesterId, 'editor');
@@ -162,9 +143,9 @@ export const inviteMember = async (boardId, requesterId, { email, role }) => {
   return boardRepo.findByIdWithMembers(boardId);
 };
 
-/**
- * Change a member's role. Only the owner can promote/demote.
- */
+
+//  Change a member's role. Only the owner can promote/demote.
+ 
 export const updateMemberRole = async (boardId, requesterId, memberId, role) => {
   const board = await getBoardOrThrow(boardId);
 
@@ -181,9 +162,9 @@ export const updateMemberRole = async (boardId, requesterId, memberId, role) => 
   return boardRepo.findByIdWithMembers(boardId);
 };
 
-/**
- * Accept a board invitation
- */
+
+//  Accept a board invitation
+
 export const acceptInvitation = async (boardId, userId) => {
   const board = await getBoardOrThrow(boardId);
   const member = board.members?.find((m) => toIdStr(m.userId) === toIdStr(userId));
@@ -200,9 +181,9 @@ export const acceptInvitation = async (boardId, userId) => {
   return boardRepo.findByIdWithMembers(boardId);
 };
 
-/**
- * Decline a board invitation
- */
+
+  // Decline a board invitation
+
 export const declineInvitation = async (boardId, userId) => {
   const board = await getBoardOrThrow(boardId);
   const member = board.members?.find((m) => toIdStr(m.userId) === toIdStr(userId));
@@ -215,9 +196,9 @@ export const declineInvitation = async (boardId, userId) => {
   return { message: 'Invitation declined' };
 };
 
-/**
- * Remove a member. Owner can remove anyone; a member can remove themselves.
- */
+
+  // Remove a member. Owner can remove anyone; a member can remove themselves.
+ 
 export const removeMember = async (boardId, requesterId, targetUserId) => {
   const board = await getBoardOrThrow(boardId);
   const isOwner = toIdStr(board.owner) === toIdStr(requesterId);
@@ -239,21 +220,12 @@ export const removeMember = async (boardId, requesterId, targetUserId) => {
 };
 
 // Canvas Operations
-
-/**
- * Full canvas state save (called on disconnect or manual save).
- * Only editors and owners can write canvas.
- */
 export const saveCanvas = async (boardId, userId, canvas) => {
   const board = await getBoardOrThrow(boardId);
   assertPermission(board, userId, 'editor');
   return boardRepo.updateCanvas(boardId, canvas);
 };
 
-/**
- * Upsert a single element (called per socket event for real-time edits).
- * Attaches the requesting user as createdBy / updatedBy.
- */
 export const upsertElement = async (boardId, userId, element) => {
   const board = await getBoardOrThrow(boardId);
   assertPermission(board, userId, 'editor');
@@ -267,9 +239,9 @@ export const upsertElement = async (boardId, userId, element) => {
   return boardRepo.upsertElement(boardId, enriched);
 };
 
-/**
- * Delete elements by ID array.
- */
+
+  // Delete elements by ID array.
+ 
 export const deleteElements = async (boardId, userId, elementIds) => {
   const board = await getBoardOrThrow(boardId);
   assertPermission(board, userId, 'editor');

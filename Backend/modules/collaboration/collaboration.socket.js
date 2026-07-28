@@ -8,7 +8,7 @@ export const registerCollaborationHandlers = (io) => {
     const { user } = socket; // attached by JWT middleware
     logger.info('Collaboration socket connected', { userId: user._id });
 
-    // ─── join-board ────────────────────────────────────────────────────────
+    //  join-board 
     socket.on('join-board', async ({ boardId }) => {
       try {
         if (!boardId) return socket.emit('error', { message: 'boardId is required' });
@@ -40,12 +40,12 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    // ─── leave-board ───────────────────────────────────────────────────────
+    //  leave-board 
     socket.on('leave-board', ({ boardId }) => {
       handleLeave(socket, collab, boardId, user);
     });
 
-    // ─── element:update ───────────────────────────────────────────────────
+    //  element:update 
     socket.on('element:update', async ({ boardId, element }) => {
       try {
         if (!boardId || !element?.id) return;
@@ -70,7 +70,7 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    // ─── element:delete ───────────────────────────────────────────────────
+    //  element:delete 
     socket.on('element:delete', async ({ boardId, elementIds }) => {
       try {
         if (!boardId || !Array.isArray(elementIds) || elementIds.length === 0) return;
@@ -93,7 +93,7 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    // ─── canvas:save ───────────────────────────────────────────────────────
+    //  canvas:save 
     socket.on('canvas:save', async ({ boardId, canvas }) => {
       try {
         if (!boardId || !canvas) return;
@@ -116,7 +116,7 @@ export const registerCollaborationHandlers = (io) => {
       }
     });
 
-    // ─── cursor:move ───────────────────────────────────────────────────────
+    //  cursor:move 
     socket.on('cursor:move', ({ boardId, x, y }) => {
       if (!boardId) return;
       collabService.updateCursor(boardId, socket.id, { x, y });
@@ -128,7 +128,7 @@ export const registerCollaborationHandlers = (io) => {
       });
     });
 
-    // ─── disconnect ───────────────────────────────────────────────────────
+    //  disconnect 
     socket.on('disconnect', (reason) => {
       logger.info('Collaboration socket disconnected', { userId: user._id, reason });
       socket.rooms.forEach((room) => {

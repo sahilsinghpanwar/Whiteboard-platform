@@ -1,9 +1,3 @@
-/**
- * Board Context Extractor
- * Serializes the current board canvas, element details, selected objects,
- * positions, and spatial relationships into a clean context string for Gemini AI.
- */
-
 export const buildBoardContext = (canvas, selectedElementIds = []) => {
   if (!canvas?.elements?.length) {
     return 'BOARD STATE: The canvas is currently empty (0 elements). Center coordinates around x: 400, y: 300.';
