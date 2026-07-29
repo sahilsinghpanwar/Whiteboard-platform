@@ -1,42 +1,52 @@
-cat > /home/claude/backend/package.json << 'EOF'
-{
-  "name": "ai-collaborative-whiteboard-backend",
-  "version": "1.0.0",
-  "description": "Production-grade AI Collaborative Whiteboard Backend",
-  "main": "src/server.js",
-  "type": "module",
-  "engines": { "node": ">=18.0.0" },
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "lint": "eslint src/**/*.js"
-  },
-  "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.5.1",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.4",
-    "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "socket.io": "^4.8.1",
-    "winston": "^3.17.0",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.9"
-  }
-}
-EOF
-echo "Done"
-Output
+# Whiteboard Platform
 
-Done
-Done
+## What it does
+A real-time collaborative digital whiteboard application featuring interactive canvas drawing, shape tools, media attachments, AI integration, and instant multi-user synchronization.
+
+## Tech Stack
+React | Node.js | MongoDB | Express | Socket.io | TailwindCSS
+
+## Live Demo
+https://whiteboard-platform-80gy251pl-sahilpanwar0211-5486s-projects.vercel.app
+
+## How to run
+
+### 1. Install Dependencies
+
+Install dependencies for both Backend and Frontend services:
+
+```bash
+# Backend
+cd Backend
+npm install
+
+# Frontend
+cd ../Frontend
+npm install
+```
+
+### 2. Configure Environment Variables
+
+Set up your `.env` file inside the `Backend` directory using `Backend/.env.example` as a template:
+
+```env
+PORT=5001
+MONGODB_URI=your_mongodb_uri
+JWT_ACCESS_SECRET=your_jwt_access_secret
+JWT_REFRESH_SECRET=your_jwt_refresh_secret
+...
+```
+
+### 3. Start the Application
+
+Run the backend and frontend servers:
+
+```bash
+# Start Backend
+cd Backend
+npm start
+
+# Start Frontend (in a separate terminal)
+cd Frontend
+npm run dev
+```
