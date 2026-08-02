@@ -33,7 +33,15 @@ const BoardCard = ({ board, onDelete, isPending, onAccept, onDecline }) => {
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className={styles.boardCard}
-      onClick={() => { if (!isPending) navigate(`/board/${board._id}`); }}
+      onClick={() => {
+        if (!isPending) {
+          useBoardStore.getState().setBoard(board);
+          if (Array.isArray(board.canvas?.elements)) {
+            useBoardStore.getState().setElements(board.canvas.elements);
+          }
+          navigate(`/board/${board._id}`);
+        }
+      }}
       style={{ cursor: isPending ? 'default' : 'pointer' }}
     >
       {/* Thumbnail area */}

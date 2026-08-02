@@ -1,13 +1,36 @@
 import Board from './board.model.js';
 
+const inFlightPromises = new Map();
+
+export const invalidateBoardCache = (boardId) => {
+  if (boardId) {
+    inFlightPromises.delete(boardId.toString());
+  }
+};
+
 export const findById = (boardId, fields = '') =>
   Board.findById(boardId, fields).lean();
 
-export const findByIdWithMembers = (boardId) =>
-  Board.findById(boardId)
+export const findByIdWithMembers = (boardId) => {
+  const key = boardId ? boardId.toString() : '';
+  if (!key) return Promise.resolve(null);
+
+  if (inFlightPromises.has(key)) {
+    return inFlightPromises.get(key);
+  }
+
+  const promise = Board.findById(boardId)
     .populate('owner', 'fullName email profileImageUrl')
     .populate('members.userId', 'fullName email profileImageUrl')
-    .lean();
+    .lean()
+    .finally(() => {
+      // Clear after 2 seconds to keep data fresh while batching concurrent requests
+      setTimeout(() => inFlightPromises.delete(key), 2000);
+    });
+
+  inFlightPromises.set(key, promise);
+  return promise;
+};
 
 export const findByOwner = (userId) =>
   Board.find({ owner: userId }, '-canvas.elements')
@@ -37,17 +60,19 @@ export const existsByTitleAndOwner = (title, ownerId) =>
 // Write Operations
 export const createBoard = (data) => Board.create(data);
 
+export const updateBoard = (boardId, updates) => {
+  invalidateBoardCache(boardId);
+  return Board.findByIdAndUpdate(boardId, { $set: updates }, { returnDocument: 'after', runValidators: true }).lean();
+};
 
-export const updateBoard = (boardId, updates) =>
-  Board.findByIdAndUpdate(boardId, { $set: updates }, { returnDocument: 'after', runValidators: true }).lean();
-
-
-export const updateCanvas = (boardId, canvas) =>
-  Board.findByIdAndUpdate(
+export const updateCanvas = (boardId, canvas) => {
+  invalidateBoardCache(boardId);
+  return Board.findByIdAndUpdate(
     boardId,
     { $set: { canvas, lastActivityAt: new Date() } },
     { returnDocument: 'after' }
   ).lean();
+};
 
 
 export const upsertElement = async (boardId, element) => {
