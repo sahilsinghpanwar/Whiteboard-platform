@@ -11,11 +11,15 @@ export const findByIdWithMembers = (boardId) =>
 
 export const findByOwner = (userId) =>
   Board.find({ owner: userId }, '-canvas.elements')
+    .populate('owner', 'fullName email profileImageUrl')
+    .populate('members.userId', 'fullName email profileImageUrl')
     .sort({ lastActivityAt: -1 })
     .lean();
 
 export const findByMember = (userId) =>
   Board.find({ 'members.userId': userId }, '-canvas.elements')
+    .populate('owner', 'fullName email profileImageUrl')
+    .populate('members.userId', 'fullName email profileImageUrl')
     .sort({ lastActivityAt: -1 })
     .lean();
 

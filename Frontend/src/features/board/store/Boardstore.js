@@ -149,22 +149,37 @@ export const useBoardStore = create((set, get) => ({
   setActiveShape: (shape) => set({ activeShape: shape }),
 
   // Presence
-  setActiveUsers: (users) => set({ activeUsers: users }),
+  setActiveUsers: (users) => {
+    if (!Array.isArray(users)) return;
+    const uniqueMap = new Map();
+    users.forEach((u) => {
+      const uId = String(u.userId || u._id || u.id || '');
+      if (uId && !uniqueMap.has(uId)) {
+        uniqueMap.set(uId, { ...u, userId: uId });
+      }
+    });
+    set({ activeUsers: Array.from(uniqueMap.values()) });
+  },
 
   addActiveUser: (user) =>
-    set((state) => ({
-      activeUsers: state.activeUsers.some((u) => u.userId === user.userId)
-        ? state.activeUsers
-        : [...state.activeUsers, user],
-    })),
+    set((state) => {
+      const newId = String(user.userId || user._id || user.id || '');
+      if (!newId) return state;
+      const exists = state.activeUsers.some((u) => String(u.userId || u._id || u.id) === newId);
+      if (exists) return state;
+      return { activeUsers: [...state.activeUsers, { ...user, userId: newId }] };
+    }),
 
   removeActiveUser: (userId) =>
-    set((state) => ({
-      activeUsers: state.activeUsers.filter((u) => u.userId !== userId),
-      cursors: Object.fromEntries(
-        Object.entries(state.cursors).filter(([id]) => id !== userId)
-      ),
-    })),
+    set((state) => {
+      const targetId = String(userId);
+      return {
+        activeUsers: state.activeUsers.filter((u) => String(u.userId || u._id || u.id) !== targetId),
+        cursors: Object.fromEntries(
+          Object.entries(state.cursors).filter(([id]) => String(id) !== targetId)
+        ),
+      };
+    }),
 
   updateCursor: (userId, data) =>
     set((state) => ({

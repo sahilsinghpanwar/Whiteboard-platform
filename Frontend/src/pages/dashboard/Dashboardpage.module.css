@@ -548,8 +548,92 @@
 }
 
 @media (max-width: 768px) {
-  .headerInner, .main { padding-left: 20px; padding-right: 20px; }
-  .topRow { flex-direction: column; align-items: stretch; }
-  .actions { flex-direction: column; align-items: stretch; }
-  .search { width: 100%; }
+  .headerInner {
+    padding: 0 20px;
+  }
+
+  .main {
+    padding: 28px 20px 56px;
+  }
+
+  .topRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .searchWrap {
+    width: 100%;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .createBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Show delete button by default on mobile/touch screens */
+  .deleteBtn {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .headerInner {
+    padding: 0 14px;
+  }
+
+  .main {
+    padding: 20px 14px 40px;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .userBadge {
+    padding: 4px;
+  }
+
+  .logoutBtn {
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .cardThumb {
+    height: 130px;
+  }
+
+  .emptyState {
+    padding: 48px 16px;
+  }
+
+  .modalContent {
+    width: 92vw !important;
+    padding: 18px !important;
+  }
 }

@@ -2,7 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBoardStore, CANVAS_TOOLS } from "../store/Boardstore.js";
 import CanvasElement from "./CanvasElement.jsx";
-import { Trash2, Copy, Type, Palette, Move, Bot } from "lucide-react";
+import { Trash2, Copy, Type, Palette, Move, Bot, Sparkles } from "lucide-react";
+import { captureCanvasAsBase64 } from "../utils/canvasExport.js";
+import { useAIWorkspace } from "@/features/ai/hooks/Useaiworkspace.js";
 import toast from "react-hot-toast";
 
 const PALETTE_COLORS = [
@@ -38,6 +40,7 @@ export function Canvas({
   } = useBoardStore();
 
   const canEdit = role === "owner" || role === "editor";
+  const { handleVisionPrompt, showAI } = useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanvasSave });
 
   const [isPointerDown, setIsPointerDown] = useState(false);
   const [currentElement, setCurrentElement] = useState(null);
@@ -589,14 +592,34 @@ export function Canvas({
 
             <div className="w-px h-4 bg-[#E5E7EB]" />
 
-            {/* Ask AI shortcut on selection */}
+            {/* AI Edit shortcut */}
             <button
               onClick={toggleAI}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#6D5EF7] bg-[#EDE9FE] hover:bg-[#C4B5FD] transition-colors"
-              title="Ask AI to modify selection"
+              title="AI Edit"
             >
               <Bot className="w-3.5 h-3.5 text-[#6D5EF7]" />
               AI Edit
+            </button>
+
+            {/* Polish Sketch */}
+            <button
+              onClick={async () => {
+                if (!svgRef.current) return;
+                const base64Image = await captureCanvasAsBase64(svgRef.current);
+                if (!showAI) toggleAI();
+                const prompt = window.prompt("What should AI polish this sketch into?", "Polish this sketch into a login form");
+                if (prompt) {
+                  toast.loading("Processing sketch...", { id: "vision_toast" });
+                  await handleVisionPrompt(prompt, base64Image);
+                  toast.dismiss("vision_toast");
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#BE185D] bg-[#FCE7F3] hover:bg-[#FBCFE8] transition-colors"
+              title="Polish Canvas Sketch"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#BE185D]" />
+              Polish Sketch
             </button>
           </motion.div>
         )}

@@ -1,4 +1,5 @@
 import { getGeminiModel } from '../../core/config/gemini.js';
+import { getGroqClient }   from '../../core/config/groq.js';
 import { boardService }   from '../board/index.js';
 import { ApiError }       from '../../core/utils/ApiError.js';
 import { buildBoardContext, buildSelectionContext, formatConversationHistory } from './contextBuilder.js';
@@ -15,10 +16,44 @@ import {
   parseImproveResponse,
 } from './parser.js';
 
+// --- GROQ ENGINE: Ultra-Fast Text Completion & Deep Reasoning ---
+const callGroq = async (prompt) => {
+  const groq = getGroqClient();
+  if (!groq) {
+    console.warn('Groq client not available, falling back to Gemini text generation');
+    return callGemini(prompt, 'flash');
+  }
+
+  const models = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model,
+        temperature: 0.7,
+        max_tokens: 4096,
+      });
+
+      const text = completion.choices[0]?.message?.content;
+      if (text) return text;
+    } catch (err) {
+      console.error(`Groq model ${model} attempt failed:`, err.message);
+      lastError = err;
+    }
+  }
+
+  console.warn('All Groq model attempts failed, falling back to Gemini text model');
+  return callGemini(prompt, 'flash');
+};
+
+// --- GEMINI ENGINE: Multimodal Image-In, Text/Code-Out & Deep Gemini Responses ---
 const callGemini = async (prompt, tier = 'flash') => {
+  // Use valid Gemini model names registered in Google Generative AI API
   const modelNames = tier === 'pro'
-    ? ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-1.5-flash-latest']
-    : ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-2.5-pro'];
+    ? ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash']
+    : ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
   let lastError = null;
 
@@ -33,35 +68,62 @@ const callGemini = async (prompt, tier = 'flash') => {
       console.error(`Gemini model ${modelName} attempt failed:`, errMsg);
       lastError = err;
 
+      if (errMsg.includes('401') || errMsg.includes('Unauthorized') || errMsg.includes('API key')) {
+        console.warn('Gemini API Key is invalid or unauthorized. Falling back to Groq text completion.');
+        return callGroq(prompt);
+      }
+
       if (
         errMsg.includes('429') ||
         errMsg.includes('RESOURCE_EXHAUSTED') ||
         errMsg.includes('Quota exceeded') ||
         errMsg.includes('rate limit')
       ) {
-        throw ApiError.tooManyRequests(
-          'Gemini API rate limit or free tier quota reached. Please wait ~30 seconds and try again.'
-        );
-      }
-
-      if (errMsg.includes('SAFETY')) {
-        throw ApiError.badRequest('Request was blocked by safety filters. Please rephrase your prompt.');
+        console.warn('Gemini rate limit reached. Falling back to Groq.');
+        return callGroq(prompt);
       }
     }
   }
 
   const lastErrMsg = lastError?.message || String(lastError);
-  if (
-    lastErrMsg.includes('429') ||
-    lastErrMsg.includes('RESOURCE_EXHAUSTED') ||
-    lastErrMsg.includes('Quota exceeded')
-  ) {
-    throw ApiError.tooManyRequests(
-      'Gemini API rate limit or free tier quota reached. Please wait ~30 seconds and try again.'
-    );
+  console.warn(`Gemini API failed (${lastErrMsg}), attempting Groq fallback...`);
+  return callGroq(prompt);
+};
+
+const callGeminiVision = async (prompt, imageBase64) => {
+  const cleanImageBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+  const mimeTypeMatch = imageBase64.match(/^data:(image\/[a-zA-Z]+);base64,/);
+  const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/png';
+
+  const imagePart = {
+    inlineData: {
+      data: cleanImageBase64,
+      mimeType,
+    },
+  };
+
+  const visionModelNames = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+  let lastError = null;
+
+  for (const modelName of visionModelNames) {
+    try {
+      const model = getGeminiModel(modelName);
+      const result = await model.generateContent([prompt, imagePart]);
+      const text = result.response.text();
+      if (text) return text;
+    } catch (err) {
+      console.error(`Gemini Vision model ${modelName} attempt failed:`, err.message);
+      lastError = err;
+
+      if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+        throw ApiError.badRequest(
+          'Gemini API key is missing or invalid. Please set a valid GEMINI_API_KEY from Google AI Studio (https://aistudio.google.com/app/apikey) in Backend/.env'
+        );
+      }
+    }
   }
 
-  throw ApiError.internal(`AI service error: ${lastErrMsg || 'Failed to generate AI response'}`);
+  throw ApiError.internal(`Gemini Vision error: ${lastError?.message || 'Failed to process sketch image. Ensure GEMINI_API_KEY in .env is valid.'}`);
 };
 
 const getBoardCanvas = async (boardId, userId) => {
@@ -69,8 +131,16 @@ const getBoardCanvas = async (boardId, userId) => {
   return board.canvas;
 };
 
+// --- API SERVICES ---
 
-export const processAgentRequest = async (boardId, userId, prompt, selectedElementIds = [], conversationHistory = []) => {
+export const processAgentRequest = async (
+  boardId,
+  userId,
+  prompt,
+  selectedElementIds = [],
+  conversationHistory = [],
+  preferredEngine = 'groq'
+) => {
   if (!prompt?.trim()) throw ApiError.badRequest('Prompt is required');
 
   const canvas = await getBoardCanvas(boardId, userId);
@@ -85,17 +155,52 @@ export const processAgentRequest = async (boardId, userId, prompt, selectedEleme
     prompt: prompt.trim(),
   });
 
-  const rawText = await callGemini(fullPrompt, 'flash');
+  let rawText;
+  if (preferredEngine === 'gemini') {
+    rawText = await callGemini(fullPrompt, 'pro');
+  } else {
+    rawText = await callGroq(fullPrompt);
+  }
+
   return parseAgentResponse(rawText);
 };
 
+export const processVisionRequest = async (boardId, userId, prompt, imageBase64, selectedElementIds = []) => {
+  if (!prompt?.trim()) throw ApiError.badRequest('Prompt instruction is required');
+  if (!imageBase64?.trim()) throw ApiError.badRequest('Canvas screenshot / sketch image is required');
+
+  const canvas = await getBoardCanvas(boardId, userId);
+  const selectionContext = buildSelectionContext(canvas, selectedElementIds);
+
+  const visionPrompt = `
+You are an expert UI/UX developer, fullstack architect, and senior canvas design assistant.
+The user has provided a screenshot/sketch of their whiteboard canvas along with an instruction: "${prompt.trim()}".
+
+Selected elements context:
+${selectionContext}
+
+INSTRUCTIONS FOR DEEP COMPREHENSIVE ANSWER:
+1. Examine the provided sketch image closely to understand what the user has drawn or laid out.
+2. Provide a DEEP, IN-DEPTH breakdown explaining what was recognized in the drawing, the layout architecture, and user flow.
+3. Produce clean, production-grade HTML/CSS component code corresponding to the sketch and request.
+4. Give actionable suggestions for improving the design, accessibility (a11y), responsive styling, and color harmony.
+
+Return your response with detailed explanations and HTML/CSS code enclosed in \`\`\`html ... \`\`\` codeblocks.
+`;
+
+  const rawResult = await callGeminiVision(visionPrompt, imageBase64);
+  return {
+    rawResponse: rawResult,
+    processedAt: new Date().toISOString(),
+  };
+};
 
 export const brainstorm = async (boardId, userId, topic) => {
   if (!topic?.trim()) throw ApiError.badRequest('A topic is required for brainstorming');
   const canvas = await getBoardCanvas(boardId, userId);
   const context = buildBoardContext(canvas);
   const prompt = buildBrainstormPrompt(context, topic.trim());
-  const raw = await callGemini(prompt, 'flash');
+  const raw = await callGroq(prompt);
   return parseBrainstormResponse(raw);
 };
 
@@ -104,7 +209,7 @@ export const generateDiagram = async (boardId, userId, description) => {
   const canvas = await getBoardCanvas(boardId, userId);
   const context = buildBoardContext(canvas);
   const prompt = buildDiagramPrompt(context, description.trim());
-  const raw = await callGemini(prompt, 'pro');
+  const raw = await callGroq(prompt);
   return parseDiagramResponse(raw);
 };
 
@@ -115,7 +220,7 @@ export const summariseBoard = async (boardId, userId) => {
   }
   const context = buildBoardContext(canvas);
   const prompt = buildSummaryPrompt(context);
-  const raw = await callGemini(prompt, 'flash');
+  const raw = await callGroq(prompt);
   return parseSummaryResponse(raw);
 };
 
@@ -134,6 +239,6 @@ export const improveText = async (boardId, userId, selectedElements, instruction
   }
 
   const prompt = buildImprovePrompt(textContent.trim(), instruction);
-  const raw = await callGemini(prompt, 'flash');
+  const raw = await callGroq(prompt);
   return parseImproveResponse(raw);
 };

@@ -1,14 +1,14 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAIWorkspace } from "@/features/ai/hooks/Useaiworkspace.js";
 import {
-  Bot, X, Send, Loader2, Copy, Check, ArrowRight, Layers, Trash2
+  Bot, X, Send, Loader2, Copy, Check, ArrowRight, Trash2
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-/*  Code block with 1-click Copy */
+/* Code block with 1-click Copy */
 function CodeBlock({ content }) {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -79,7 +79,7 @@ function UserBubble({ content }) {
   );
 }
 
-/* AI Response Bubble with Canvas Badges */
+/* AI Response Bubble */
 function AIBubble({ msg, onInsert }) {
   const { content, summary, isError } = msg;
 
@@ -99,7 +99,6 @@ function AIBubble({ msg, onInsert }) {
           color: isError ? "#991B1B" : "#0F0F1A",
           margin: "4px 0",
           whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
         }}>
           {part}
         </p>
@@ -108,51 +107,65 @@ function AIBubble({ msg, onInsert }) {
   };
 
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
       <div style={{
-        backgroundColor: isError ? "#FEE2E2" : "#F9FAFB",
-        border: isError ? "1px solid #FCA5A5" : "1px solid #E5E7EB",
-        borderRadius: "16px 16px 16px 4px",
-        padding: "12px 14px",
+        width: 30, height: 30, borderRadius: 8,
+        backgroundColor: "#EDE9FE",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0, marginTop: 2,
       }}>
-        {/* Operation Summary Badge */}
-        {summary && (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 11, fontWeight: 700, color: "#6D5EF7",
-            backgroundColor: "#EDE9FE", border: "1px solid #C4B5FD",
-            padding: "3px 8px", borderRadius: 8, marginBottom: 8,
-          }}>
-            <Layers style={{ width: 12, height: 12 }} />
-            {summary}
-          </div>
-        )}
+        <Bot style={{ width: 16, height: 16, color: "#6D5EF7" }} />
+      </div>
 
-        {renderFormattedText(content)}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          backgroundColor: isError ? "#FEF2F2" : "#F9FAFB",
+          border: isError ? "1px solid #FCA5A5" : "1px solid #F0F1F5",
+          borderRadius: "4px 16px 16px 16px",
+          padding: "12px 14px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        }}>
+          {renderFormattedText(content)}
 
-        {!isError && (
-          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+          {summary && (
+            <div style={{
+              marginTop: 8,
+              padding: "6px 10px",
+              backgroundColor: "#ffffff",
+              borderRadius: 8,
+              border: "1px solid #E5E7EB",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#4B5563",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}>
+              <span>📌 {summary}</span>
+            </div>
+          )}
+        </div>
+
+        {onInsert && content && !isError && (
+          <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
             <button
               onClick={() => onInsert(content)}
               style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: 10,
+                padding: "6px 12px",
+                borderRadius: 8,
                 border: "none",
-                backgroundColor: "#6D5EF7",
-                color: "#ffffff",
-                fontSize: 12,
+                backgroundColor: "#EDE9FE",
+                color: "#6D5EF7",
+                fontSize: 11,
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                boxShadow: "0 2px 8px rgba(109,94,247,0.25)",
+                gap: 4,
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#5B4CE0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#6D5EF7"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#DDD6FE"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#EDE9FE"; }}
             >
               Insert on board <ArrowRight style={{ width: 12, height: 12 }} />
             </button>
@@ -189,12 +202,14 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
 
   if (!showAI) return null;
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
   const card = {
-    position: "fixed", right: 16, top: 64, zIndex: 40,
-    width: 340, height: "calc(100vh - 80px)", maxHeight: 640,
+    position: "fixed", right: isMobile ? 0 : 16, top: 64, zIndex: 40,
+    width: isMobile ? "100vw" : 350, maxWidth: "100vw", height: isMobile ? "calc(100vh - 64px)" : "calc(100vh - 80px)", maxHeight: isMobile ? "none" : 650,
     backgroundColor: "#ffffff",
-    borderRadius: 20,
-    border: "1px solid #E8E9F0",
+    borderRadius: isMobile ? 0 : 20,
+    border: isMobile ? "none" : "1px solid #E8E9F0",
     boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
     display: "flex", flexDirection: "column",
     fontFamily: "Inter, system-ui, sans-serif",
@@ -203,9 +218,9 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
 
   return (
     <motion.aside
-      initial={{ opacity: 0, x: 340 }}
+      initial={{ opacity: 0, x: 350 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 340 }}
+      exit={{ opacity: 0, x: 350 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={card}
     >
@@ -309,7 +324,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
               <Bot style={{ width: 22, height: 22, color: "#6D5EF7" }} />
             </div>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>AI Board Assistant</p>
+              <p style={{ fontSize: 14, fontWeight: 800, color: "#0F0F1A", margin: 0 }}>AI Assistant</p>
               <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6, margin: "6px 0 0", maxWidth: 240, lineHeight: 1.5 }}>
                 Type any prompt below to create diagrams, edit notes, generate code, or analyze your whiteboard.
               </p>
@@ -351,7 +366,7 @@ export function AISidebar({ emitElementUpdate, emitElementDelete, emitCanvasSave
         <input
           ref={inputRef}
           type="text"
-          placeholder="Ask AI or give canvas instructions…"
+          placeholder="Ask AI Assistant or type canvas instructions…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={isProcessing}

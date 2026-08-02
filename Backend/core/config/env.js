@@ -30,6 +30,9 @@ const envSchema = z.object({
 
   // Google Gemini AI
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+
+  // Groq AI
+  GROQ_API_KEY: z.string().optional().default(""),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

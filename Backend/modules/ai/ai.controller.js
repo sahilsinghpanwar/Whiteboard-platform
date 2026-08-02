@@ -14,6 +14,19 @@ export const processAgentRequest = async (req, res) => {
   );
 };
 
+export const processVisionRequest = async (req, res) => {
+  const result = await aiService.processVisionRequest(
+    req.params.boardId,
+    req.user._id,
+    req.body.prompt,
+    req.body.image,
+    req.body.selectedElementIds || []
+  );
+  res.status(200).json(
+    new ApiResponse(200, result, 'Gemini Vision sketch request processed')
+  );
+};
+
 export const brainstorm = async (req, res) => {
   const ideas = await aiService.brainstorm(
     req.params.boardId,

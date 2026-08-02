@@ -3,6 +3,8 @@ import api from "@/shared/api/axios.js";
 export const aiApi = {
   agent: (boardId, { prompt, selectedElementIds = [], conversationHistory = [] }) =>
     api.post(`/boards/${boardId}/ai/agent`, { prompt, selectedElementIds, conversationHistory }),
+  vision: (boardId, { prompt, image, selectedElementIds = [] }) =>
+    api.post(`/boards/${boardId}/ai/vision`, { prompt, image, selectedElementIds }),
   brainstorm: (boardId, topic) =>
     api.post(`/boards/${boardId}/ai/brainstorm`, { topic }),
   generateDiagram: (boardId, description) =>

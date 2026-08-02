@@ -126,13 +126,15 @@ export function ChatSidebar() {
     if (e.key === "Enter" && !e.shiftKey) handleSend(e);
   };
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
   /* inline style object — 100% identical pattern as MembersSidebar */
   const card = {
-    position: "fixed", right: 16, top: 64, zIndex: 40,
-    width: 320, maxHeight: "calc(100vh - 80px)",
+    position: "fixed", right: isMobile ? 0 : 16, top: 64, zIndex: 40,
+    width: isMobile ? "100vw" : 340, maxWidth: "100vw", height: isMobile ? "calc(100vh - 64px)" : "calc(100vh - 80px)", maxHeight: isMobile ? "none" : 650,
     backgroundColor: "#ffffff",
-    borderRadius: 20,
-    border: "1px solid #E8E9F0",
+    borderRadius: isMobile ? 0 : 20,
+    border: isMobile ? "none" : "1px solid #E8E9F0",
     boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
     display: "flex", flexDirection: "column",
     fontFamily: "Inter, system-ui, sans-serif",

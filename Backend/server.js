@@ -85,18 +85,33 @@ process.on("uncaughtException", (error) => {
 });
 
 import { initGemini } from "./core/config/gemini.js";
+import { initGroq } from "./core/config/groq.js";
 import { initCloudinary } from "./core/config/cloudinary.js";
 
 const startServer = async () => {
   try {
     await connectDatabase();
     initGemini();
+    initGroq();
     initCloudinary();
   } catch (err) {
     logger.warn("Database connection attempt failed. Ensure MongoDB is running or check MONGODB_URI in .env.", {
       error: err.message,
     });
   }
+
+  httpServer.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      logger.error(`Port ${env.PORT} is already in use. Terminate the process using port ${env.PORT} or specify a different PORT in .env.`, {
+        port: env.PORT,
+        error: error.message,
+      });
+      process.exit(1);
+    } else {
+      logger.error("Server error:", { error: error.message });
+      process.exit(1);
+    }
+  });
 
   httpServer.listen(env.PORT, () => {
     logger.info("Server started", {

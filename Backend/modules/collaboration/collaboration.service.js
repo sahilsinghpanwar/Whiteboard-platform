@@ -28,7 +28,14 @@ export const removeFromRoom = (boardId, socketId) => {
 export const getRoomUsers = (boardId) => {
   const room = rooms.get(boardId);
   if (!room) return [];
-  return Array.from(room.values());
+  const uniqueMap = new Map();
+  for (const u of room.values()) {
+    const key = String(u.userId || u._id || u.socketId);
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, u);
+    }
+  }
+  return Array.from(uniqueMap.values());
 };
 
 export const updateCursor = (boardId, socketId, cursor) => {

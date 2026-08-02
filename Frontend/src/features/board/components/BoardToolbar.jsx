@@ -216,7 +216,7 @@ export function BoardToolbar({
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1 p-2 rounded-2xl bg-[#ffffff]/95 backdrop-blur-xl border border-[#E8E9F0] shadow-xl shadow-black/5 select-none font-sans"
+      className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-0.5 sm:gap-1 p-1 sm:p-2 max-h-[85vh] overflow-y-auto custom-scrollbar rounded-2xl bg-[#ffffff]/95 backdrop-blur-xl border border-[#E8E9F0] shadow-xl shadow-black/5 select-none font-sans"
     >
       {!canEdit && (
         <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mb-1">

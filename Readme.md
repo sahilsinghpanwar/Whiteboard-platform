@@ -7,7 +7,7 @@ A real-time collaborative digital whiteboard application featuring interactive c
 React | Node.js | MongoDB | Express | Socket.io | TailwindCSS
 
 ## Live Demo
-https://whiteboard-platform.vercel.app/
+https://whiteboard-platform.vercel.app
 
 ## How to run
 

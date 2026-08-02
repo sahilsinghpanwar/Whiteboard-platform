@@ -17,13 +17,18 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
   const canEdit = role === "owner" || role === "editor";
   const stepTimerRef = useRef(null);
 
-  const startStreamingSimulation = () => {
-    const steps = [
-      "Understanding Board State...",
-      "Planning Architecture & Canvas Operations...",
-      "Generating Canvas Objects...",
-      "Rendering Canvas & Connectors...",
-    ];
+  const startStreamingSimulation = (isVision = false) => {
+    const steps = isVision
+      ? [
+          "Analyzing Canvas Sketch with Gemini Vision...",
+          "Extracting UI Elements & Structural Layout...",
+          "Generating Polished HTML/CSS Component...",
+        ]
+      : [
+          "Groq AI Engine Processing Request...",
+          "Planning Architecture & Canvas Operations...",
+          "Generating Canvas Objects...",
+        ];
     let i = 0;
     setStreamingStep(steps[0]);
 
@@ -34,7 +39,7 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
       } else {
         clearInterval(stepTimerRef.current);
       }
-    }, 800);
+    }, 700);
   };
 
   const stopStreamingSimulation = () => {
@@ -42,6 +47,7 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
     setStreamingStep(null);
   };
 
+  // 1. Text-In, Text-Out (Powered by Groq)
   const handleSendPrompt = useCallback(
     async (customPrompt) => {
       const promptText = (typeof customPrompt === "string" ? customPrompt : input).trim();
@@ -49,14 +55,12 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
 
       setInput("");
       setIsProcessing(true);
-      startStreamingSimulation();
+      startStreamingSimulation(false);
 
-      // Add user message to state
       const userMsg = { id: `user_${Date.now()}`, role: "user", content: promptText, timestamp: new Date() };
       setMessages((prev) => [...prev, userMsg]);
 
       try {
-        // Build conversation history format
         const historyPayload = messages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
 
         const res = await aiApi.agent(boardId, {
@@ -68,7 +72,6 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
         const data = res.data?.data || {};
         const { message = "Request processed.", summary = "Processed canvas actions", operations = [] } = data;
 
-        // Execute canvas operations
         let opResult = { created: 0, modified: 0, deleted: 0 };
         if (canEdit && operations.length > 0) {
           opResult = CanvasOperationExecutor.execute({
@@ -80,10 +83,10 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
           });
         }
 
-        // Add AI message response
         const aiMsg = {
           id: `ai_${Date.now()}`,
           role: "ai",
+          engine: "groq",
           content: message,
           summary: summary || (opResult.created > 0 ? `Created ${opResult.created} canvas element(s)` : undefined),
           operationsCount: operations.length,
@@ -94,10 +97,10 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
         setMessages((prev) => [...prev, aiMsg]);
 
         if (opResult.created > 0 || opResult.modified > 0 || opResult.deleted > 0) {
-          toast.success(`Canvas updated (${opResult.created} created, ${opResult.modified} modified)`);
+          toast.success(`Canvas updated via Groq (${opResult.created} created, ${opResult.modified} modified)`);
         }
       } catch (err) {
-        const errMsg = err.response?.data?.message || err.message || "Failed to process AI request";
+        const errMsg = err.response?.data?.message || err.message || "Failed to process Groq AI request";
         setMessages((prev) => [
           ...prev,
           { id: `err_${Date.now()}`, role: "ai", content: errMsg, isError: true, timestamp: new Date() },
@@ -109,6 +112,58 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
       }
     },
     [boardId, input, isProcessing, messages, selectedElementIds, canEdit, emitElementUpdate, emitElementDelete, emitCanvasSave]
+  );
+
+  // 2. Multimodal Image-In, Code/Text-Out (Powered by Gemini Vision)
+  const handleVisionPrompt = useCallback(
+    async (promptText, imageBase64) => {
+      if (!promptText || !imageBase64 || isProcessing) return;
+
+      setIsProcessing(true);
+      startStreamingSimulation(true);
+
+      const userMsg = {
+        id: `user_vision_${Date.now()}`,
+        role: "user",
+        content: `🎨 Sketch Polish Request: "${promptText}"`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+
+      try {
+        const res = await aiApi.vision(boardId, {
+          prompt: promptText,
+          image: imageBase64,
+          selectedElementIds,
+        });
+
+        const data = res.data?.data || {};
+        const rawResponse = data.rawResponse || "Gemini Vision processing completed.";
+
+        const aiMsg = {
+          id: `gemini_vision_${Date.now()}`,
+          role: "ai",
+          engine: "gemini",
+          content: rawResponse,
+          summary: "Canvas sketch polished into UI / Code by Gemini Vision",
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, aiMsg]);
+        toast.success("Sketch polished by Gemini Vision!");
+      } catch (err) {
+        const errMsg = err.response?.data?.message || err.message || "Failed to process Gemini Vision request";
+        setMessages((prev) => [
+          ...prev,
+          { id: `err_${Date.now()}`, role: "ai", content: errMsg, isError: true, timestamp: new Date() },
+        ]);
+        toast.error(errMsg);
+      } finally {
+        stopStreamingSimulation();
+        setIsProcessing(false);
+      }
+    },
+    [boardId, isProcessing, selectedElementIds]
   );
 
   const handleClearChat = useCallback(() => {
@@ -146,6 +201,7 @@ export function useAIWorkspace({ emitElementUpdate, emitElementDelete, emitCanva
     streamingStep,
     selectedElementIds,
     handleSendPrompt,
+    handleVisionPrompt,
     handleClearChat,
     handleInsertOnBoard,
   };

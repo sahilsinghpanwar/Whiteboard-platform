@@ -5,7 +5,7 @@ import { useBoardStore } from "../store/Boardstore.js";
 import { boardApi } from "../api/Board.api.js";
 import {
   ChevronLeft, Share2, Download, MessageSquare,
-  Bot, Users, FileCode, Image as ImageIcon, Check,
+  Bot, Users, FileCode, Image as ImageIcon, Check, X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -148,30 +148,30 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-16 px-6 bg-[#ffffff]/90 backdrop-blur-xl border-b border-[#E8E9F0] flex items-center justify-between shadow-sm select-none font-sans text-[#0F0F1A]">
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 px-2.5 sm:px-6 bg-[#ffffff]/90 backdrop-blur-xl border-b border-[#E8E9F0] flex items-center justify-between shadow-sm select-none font-sans text-[#0F0F1A]">
 
       {/* Left Section — Back + Brand Mark + Editable Title & Role */}
-      <div className="flex items-center gap-4.5 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button
           onClick={() => navigate("/dashboard")}
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] transition-all flex-shrink-0 active:scale-95"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-[#4B4B6A] hover:text-[#0F0F1A] hover:bg-[#F3F4F6] transition-all flex-shrink-0 active:scale-95"
           title="Back to Dashboard"
         >
-          <ChevronLeft className="w-5.5 h-5.5 stroke-[2.2]" />
+          <ChevronLeft className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
         </button>
 
         {/* Brand Mark */}
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 hidden sm:block">
           <rect x="2" y="2" width="9" height="9" rx="2.5" fill="#6D5EF7" />
           <rect x="13" y="2" width="9" height="9" rx="2.5" fill="#6D5EF7" opacity="0.4" />
           <rect x="2" y="13" width="9" height="9" rx="2.5" fill="#6D5EF7" opacity="0.4" />
           <rect x="13" y="13" width="9" height="9" rx="2.5" fill="#6D5EF7" />
         </svg>
 
-        <div className="w-px h-5 bg-[#E8E9F0] flex-shrink-0" />
+        <div className="w-px h-5 bg-[#E8E9F0] flex-shrink-0 hidden sm:block" />
 
         {/* Editable Board Title */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {isEditingTitle ? (
             <input
               value={title}
@@ -179,12 +179,12 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
               onBlur={handleTitleBlur}
               onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
               autoFocus
-              className="border border-[#6D5EF7] rounded-xl px-3 py-1 text-sm font-semibold text-[#0F0F1A] outline-none bg-white ring-2 ring-[#6D5EF7]/30 w-52"
+              className="border border-[#6D5EF7] rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-[#0F0F1A] outline-none bg-white ring-2 ring-[#6D5EF7]/30 w-32 sm:w-52"
             />
           ) : (
             <h1
               onClick={() => setIsEditingTitle(true)}
-              className="text-sm font-bold text-[#0F0F1A] cursor-pointer hover:bg-[#F3F4F6] px-2.5 py-1.5 rounded-xl transition-colors truncate max-w-[220px]"
+              className="text-xs sm:text-sm font-bold text-[#0F0F1A] cursor-pointer hover:bg-[#F3F4F6] px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-colors truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[200px] md:max-w-[260px]"
               title="Click to rename board"
             >
               {title}
@@ -192,7 +192,7 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
           )}
 
           {/* Role Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE]/80 border border-[#C4B5FD]/70 text-[#6D5EF7] shadow-sm flex-shrink-0">
+          <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE]/80 border border-[#C4B5FD]/70 text-[#6D5EF7] shadow-sm flex-shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-[#6D5EF7] animate-pulse" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider">
               {role || "Editor"}
@@ -202,37 +202,80 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
       </div>
 
       {/* Center Section — Collaborator Active Avatars */}
-      <div className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
-        <div className="flex items-center -space-x-2">
-          {activeUsers.slice(0, 4).map((u, i) => (
-            <PresenceAvatar key={u.userId || i} user={u} />
-          ))}
-        </div>
-        {activeUsers.length > 4 && (
-          <span className="text-[10px] font-bold text-[#6D5EF7] bg-[#EDE9FE] px-2 py-0.5 rounded-full">
-            +{activeUsers.length - 4}
-          </span>
-        )}
-        <div className="flex items-center gap-1.5 ml-0.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-bold text-[#0F0F1A]">
-            {activeUsers.length === 1 ? "1 Online" : `${activeUsers.length} Online`}
-          </span>
-        </div>
-      </div>
+      {(() => {
+        const uniqueActiveUsers = Array.from(
+          new Map(activeUsers.map((u) => [String(u.userId || u._id || u.id), u])).values()
+        );
+        const count = uniqueActiveUsers.length || 1;
+
+        return (
+          <div className="hidden lg:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
+            <div className="flex items-center -space-x-2">
+              {uniqueActiveUsers.slice(0, 4).map((u, i) => (
+                <PresenceAvatar key={u.userId || u._id || i} user={u} />
+              ))}
+            </div>
+            {uniqueActiveUsers.length > 4 && (
+              <span className="text-[10px] font-bold text-[#6D5EF7] bg-[#EDE9FE] px-2 py-0.5 rounded-full">
+                +{uniqueActiveUsers.length - 4}
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 ml-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-bold text-[#0F0F1A]">
+                {count === 1 ? "1 Online" : `${count} Online`}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Right Action Icons Group in Unified Glass Card */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
+      <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-white border border-[#E8E9F0] shadow-sm shadow-black/5">
         {/* Share Button */}
         <button
           onClick={() => setShowShareModal(true)}
-          className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-[#6D5EF7] to-[#7C6EF8] hover:from-[#5B4CE0] hover:to-[#6D5EF7] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-[#6D5EF7]/20 active:scale-95 border border-white/20 cursor-pointer"
+          style={{
+            height: "36px",
+            padding: "0 12px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #6D5EF7 0%, #5B4CE0 100%)",
+            color: "#ffffff",
+            fontSize: "13px",
+            fontWeight: 700,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(109, 94, 247, 0.35)",
+            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+            letterSpacing: "0.01em",
+            userSelect: "none",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(109, 94, 247, 0.48)";
+            e.currentTarget.style.background = "linear-gradient(135deg, #7C6EF8 0%, #6D5EF7 100%)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 14px rgba(109, 94, 247, 0.35)";
+            e.currentTarget.style.background = "linear-gradient(135deg, #6D5EF7 0%, #5B4CE0 100%)";
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = "scale(0.97)";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
         >
-          <Share2 className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>Share</span>
+          <Share2 style={{ width: 14, height: 14, strokeWidth: 2.5 }} />
+          <span className="hidden sm:inline">Share</span>
         </button>
 
         <div className="w-px h-5 bg-[#E8E9F0]" />
@@ -308,35 +351,112 @@ export function BoardHeader({ boardId, emitCanvasSave }) {
       {/* Share Modal */}
       <AnimatePresence>
         {showShareModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#ffffff] border border-[#E8E9F0] rounded-2xl p-6 shadow-2xl text-[#0F0F1A]"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                width: "100%",
+                maxWidth: "460px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #E8E9F0",
+                borderRadius: "20px",
+                padding: "24px",
+                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
+                color: "#0F0F1A",
+                position: "relative",
+                boxSizing: "border-box",
+                overflow: "hidden",
+              }}
             >
-              <h3 className="text-lg font-bold mb-1">Share Board</h3>
-              <p className="text-xs text-[#6B7280] mb-4">Anyone with this link can view or edit this board.</p>
-
-              <div className="flex items-center gap-2 mb-6">
-                <input
-                  readOnly
-                  value={window.location.href}
-                  className="flex-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs font-mono text-[#0F0F1A] outline-none"
-                />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 800, margin: 0, color: "#0F0F1A" }}>Share Board</h3>
                 <button
-                  onClick={handleCopyShareLink}
-                  className="px-4 py-2 bg-[#6D5EF7] hover:bg-[#5B4CE0] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                  onClick={() => setShowShareModal(false)}
+                  style={{
+                    width: "28px", height: "28px", borderRadius: "8px", border: "none",
+                    backgroundColor: "#F3F4F6", color: "#6B7280", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#E5E7EB"; e.currentTarget.style.color = "#111827"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#F3F4F6"; e.currentTarget.style.color = "#6B7280"; }}
                 >
-                  {copiedLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                  <span>{copiedLink ? "Copied" : "Copy"}</span>
+                  <X style={{ width: 14, height: 14 }} />
                 </button>
               </div>
 
-              <div className="flex justify-end">
+              <p style={{ fontSize: "12px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: 1.5 }}>
+                Anyone with this link can view or collaborate on this board.
+              </p>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", width: "100%" }}>
+                <input
+                  readOnly
+                  value={window.location.href}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    backgroundColor: "#F9FAFB",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    fontSize: "12px",
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    color: "#0F0F1A",
+                    outline: "none",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  style={{
+                    flexShrink: 0,
+                    height: "38px",
+                    padding: "0 16px",
+                    borderRadius: "12px",
+                    background: copiedLink ? "#10B981" : "linear-gradient(135deg, #6D5EF7 0%, #5B4CE0 100%)",
+                    color: "#ffffff",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    transition: "all 0.2s ease",
+                    boxShadow: "0 2px 8px rgba(109,94,247,0.25)",
+                    userSelect: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {copiedLink ? <Check style={{ width: 14, height: 14 }} /> : <Share2 style={{ width: 14, height: 14 }} />}
+                  <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
+                </button>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
                   onClick={() => setShowShareModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#4B4B6A] hover:bg-[#F3F4F6] transition-colors"
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#4B4B6A",
+                    backgroundColor: "#F3F4F6",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#E5E7EB"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#F3F4F6"; }}
                 >
                   Close
                 </button>
