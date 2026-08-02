@@ -41,16 +41,9 @@ export default function WhiteboardPage() {
     if (!boardId) return;
 
     let isMounted = true;
-    const currentBoard = useBoardStore.getState().board;
-    // Instant load: If board is pre-seeded from dashboard, render immediately without full-page spinner
-    if (currentBoard && String(currentBoard._id) === String(boardId)) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
     const loadBoard = async () => {
       try {
+        setLoading(true);
         const res = await boardApi.getById(boardId);
         const fetchedBoard = res.data?.data?.board || res.data?.data;
 
@@ -87,7 +80,7 @@ export default function WhiteboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [boardId]);
+  }, [boardId, user?._id]);
 
   if (loading) {
     return (
