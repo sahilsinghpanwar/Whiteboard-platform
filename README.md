@@ -4,7 +4,7 @@
 
 An intelligent, real-time digital whiteboard application designed for seamless team collaboration, dynamic canvas drawing, and instant AI-assisted diagram generation.
 
-[**🌐 Live Demo**](https://whiteboard-platform.vercel.app) • [**⚡ Frontend (Vercel)**](https://whiteboard-platform.vercel.app) • [**⚙️ Backend (Render)**](https://whiteboard-platform.onrender.com)
+[**🌐 Live Demo**](https://whiteboard-platform.vercel.app) • [**⚡ Frontend (Vercel)**](https://whiteboard-platform.vercel.app) • [**⚙️ Backend (Render)**](https://whiteboard-platform.vercel.app)
 
 ---
 
