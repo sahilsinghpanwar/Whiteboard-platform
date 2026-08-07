@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 
 const AlertDialogContext = createContext({
   open: false,
@@ -53,12 +53,87 @@ export const AlertDialogTrigger = ({ children, asChild, onClick, ...props }) => 
 };
 
 export const AlertDialogContent = ({ children, className = "", ...props }) => {
-  const { open } = useContext(AlertDialogContext);
+  const { open, setOpen } = useContext(AlertDialogContext);
+  const contentRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, [setOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement;
+
+    const timer = setTimeout(() => {
+      if (contentRef.current) {
+        if (contentRef.current.contains(document.activeElement)) {
+          return;
+        }
+        const focusable = contentRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        } else {
+          contentRef.current.focus();
+        }
+      }
+    }, 0);
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose();
+        return;
+      }
+
+      if (e.key === "Tab" && contentRef.current) {
+        const focusable = Array.from(
+          contentRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute("disabled"));
+
+        if (focusable.length === 0) return;
+
+        const firstElement = focusable[0];
+        const lastElement = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === "function") {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [open, handleClose]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className={`z-50 max-w-lg rounded-lg border bg-background p-6 shadow-lg ${className}`} {...props}>
+      <div
+        ref={contentRef}
+        role="alertdialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className={`z-50 max-w-lg rounded-lg border bg-background p-6 shadow-lg outline-none ${className}`}
+        {...props}
+      >
         {children}
       </div>
     </div>

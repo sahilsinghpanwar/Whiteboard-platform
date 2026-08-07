@@ -21,7 +21,24 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
       try {
         const res = await chatApi.history(boardId);
         const list = Array.isArray(res) ? res : res?.data ?? [];
-        if (!ignore) setMessages(list);
+        if (!ignore) {
+          setMessages((prev) => {
+            const seen = new Set();
+            const merged = [];
+            [...list, ...prev].forEach((m) => {
+              const key = m._id || m.id;
+              if (key) {
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  merged.push(m);
+                }
+              } else {
+                merged.push(m);
+              }
+            });
+            return merged;
+          });
+        }
       } catch (e) {
         console.error("Failed to fetch chat history", e);
       }

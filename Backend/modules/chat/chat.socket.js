@@ -64,8 +64,11 @@ export const registerChatHandlers = (io) => {
         io.of('/chat').to(`board:${boardId}`).emit('chat:deleted', { messageId });
         if (typeof callback === 'function') callback({ success: true });
       } catch (err) {
-        socket.emit('error', { message: err.message });
-        if (typeof callback === 'function') callback({ error: err.message });
+        if (typeof callback === 'function') {
+          callback({ error: err.message });
+        } else {
+          socket.emit('error', { message: err.message });
+        }
       }
     });
 

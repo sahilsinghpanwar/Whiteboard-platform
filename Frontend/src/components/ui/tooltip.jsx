@@ -1,4 +1,4 @@
-import { createContext, useContext, useId } from "react";
+import React, { createContext, useContext, useId } from "react";
 
 const TooltipContext = createContext(null);
 
@@ -16,8 +16,21 @@ export const Tooltip = ({ children }) => {
 export const TooltipTrigger = ({ children, asChild, ...props }) => {
   const ctx = useContext(TooltipContext);
   const ariaDescribedBy = props["aria-describedby"] || ctx?.tooltipId;
+
+  if (asChild && React.isValidElement(children)) {
+    const combinedClassName = [props.className, children.props.className]
+      .filter(Boolean)
+      .join(" ");
+
+    return React.cloneElement(children, {
+      "aria-describedby": ariaDescribedBy,
+      ...props,
+      ...(combinedClassName ? { className: combinedClassName } : {}),
+    });
+  }
+
   return (
-    <div aria-describedby={ariaDescribedBy} data-as-child={asChild || undefined} {...props}>
+    <div aria-describedby={ariaDescribedBy} {...props}>
       {children}
     </div>
   );

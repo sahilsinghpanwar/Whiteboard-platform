@@ -60,6 +60,7 @@ export default function TopBar({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={(e) => {
+            if (saving) return;
             const val = e.target.value.trim();
             if (val && val !== board?.title) {
               onRename?.(val);
@@ -71,7 +72,7 @@ export default function TopBar({
             }
           }}
           data-testid="board-title-input"
-          disabled={!canEdit}
+          disabled={!canEdit || saving}
         />
         <div className={`label-mono flex items-center gap-1.5 text-xs ${textMutedClass}`}>
           <Circle

@@ -54,13 +54,11 @@ const logout = async (req, res) => {
 };
 
 const googleCallback = async (req, res) => {
-  const { accessToken, refreshToken, user } = req.user;
+  const { refreshToken } = req.user;
 
   res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
 
-  return res.redirect(
-    `${env.CLIENT_URL}/auth/google/success?token=${accessToken}`
-  );
+  return res.redirect(`${env.CLIENT_URL}/auth/google/success`);
 };
 
 export const authController = {

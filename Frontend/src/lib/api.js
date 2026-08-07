@@ -28,16 +28,52 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshTokenPromise = null;
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const originalRequest = err?.config;
     const status = err?.response?.status;
-    if (status === 401 && typeof window !== "undefined") {
-      const path = window.location.pathname;
-      if (!path.startsWith("/login") && !path.startsWith("/register") && path !== "/") {
-        inMemoryToken = null;
+
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/refresh")
+    ) {
+      originalRequest._retry = true;
+
+      if (!refreshTokenPromise) {
+        refreshTokenPromise = api
+          .post("/auth/refresh")
+          .then((res) => {
+            const data = unwrap(res);
+            const token = data?.accessToken || res?.data?.accessToken;
+            if (token) {
+              setAccessToken(token);
+              return token;
+            }
+            throw new Error("No token returned from refresh");
+          })
+          .catch((refreshErr) => {
+            setAccessToken(null);
+            throw refreshErr;
+          })
+          .finally(() => {
+            refreshTokenPromise = null;
+          });
+      }
+
+      try {
+        const token = await refreshTokenPromise;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshErr) {
+        return Promise.reject(refreshErr);
       }
     }
+
     return Promise.reject(err);
   }
 );

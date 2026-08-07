@@ -110,6 +110,7 @@ export const useBoardSockets = (boardId) => {
 
   useEffect(() => {
     if (!boardId) return;
+    let isDisposed = false;
 
     const common = {
       auth: (cb) => {
@@ -148,6 +149,7 @@ export const useBoardSockets = (boardId) => {
       ) {
         try {
           const res = await authApi.refresh();
+          if (isDisposed) return;
           const newToken = res?.accessToken;
           if (newToken) {
             setAccessToken(newToken);
@@ -165,6 +167,7 @@ export const useBoardSockets = (boardId) => {
     });
 
     return () => {
+      isDisposed = true;
       try { collab.emit("leave-board", { boardId }); } catch { console.warn("Failed to emit leave-board"); }
       collab.disconnect();
       chat.disconnect();

@@ -113,6 +113,9 @@ export function DialogContent({ className = "", children, onClose, ...props }) {
 
     const timer = setTimeout(() => {
       if (contentRef.current) {
+        if (contentRef.current.contains(document.activeElement)) {
+          return;
+        }
         const focusable = contentRef.current.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
