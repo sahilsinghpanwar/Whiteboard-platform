@@ -78,7 +78,7 @@ export default function AIPanel({ boardId, selectedElements }) {
         </div>
         <div>
           <div className="text-sm font-semibold">AI Copilot</div>
-          <div className="text-[10px] font-mono text-muted-foreground">Gemini · Groq</div>
+          <div className="text-[10px] font-mono text-muted-foreground">Nova AI</div>
         </div>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">
