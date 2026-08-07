@@ -1,12 +1,16 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useId } from "react";
 
 const AlertDialogContext = createContext({
   open: false,
   setOpen: () => {},
+  titleId: "",
+  descriptionId: "",
 });
 
 export const AlertDialog = ({ children, open: controlledOpen, defaultOpen = false, onOpenChange }) => {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const titleId = useId();
+  const descriptionId = useId();
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : uncontrolledOpen;
 
@@ -22,7 +26,7 @@ export const AlertDialog = ({ children, open: controlledOpen, defaultOpen = fals
   );
 
   return (
-    <AlertDialogContext.Provider value={{ open, setOpen }}>
+    <AlertDialogContext.Provider value={{ open, setOpen, titleId, descriptionId }}>
       {children}
     </AlertDialogContext.Provider>
   );
@@ -53,7 +57,7 @@ export const AlertDialogTrigger = ({ children, asChild, onClick, ...props }) => 
 };
 
 export const AlertDialogContent = ({ children, className = "", ...props }) => {
-  const { open, setOpen } = useContext(AlertDialogContext);
+  const { open, setOpen, titleId, descriptionId } = useContext(AlertDialogContext);
   const contentRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -124,12 +128,17 @@ export const AlertDialogContent = ({ children, className = "", ...props }) => {
 
   if (!open) return null;
 
+  const ariaLabelledBy = props["aria-labelledby"] || (props["aria-label"] ? undefined : titleId);
+  const ariaDescribedBy = props["aria-describedby"] || descriptionId;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={contentRef}
         role="alertdialog"
         aria-modal="true"
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
         tabIndex={-1}
         className={`z-50 max-w-lg rounded-lg border bg-background p-6 shadow-lg outline-none ${className}`}
         {...props}
@@ -144,13 +153,19 @@ export const AlertDialogHeader = ({ children, className = "", ...props }) => (
   <div className={`flex flex-col space-y-2 text-center sm:text-left ${className}`} {...props}>{children}</div>
 );
 
-export const AlertDialogTitle = ({ children, className = "", ...props }) => (
-  <h2 className={`text-lg font-semibold ${className}`} {...props}>{children}</h2>
-);
+export const AlertDialogTitle = ({ children, className = "", id, ...props }) => {
+  const { titleId } = useContext(AlertDialogContext);
+  return (
+    <h2 id={id || titleId} className={`text-lg font-semibold ${className}`} {...props}>{children}</h2>
+  );
+};
 
-export const AlertDialogDescription = ({ children, className = "", ...props }) => (
-  <p className={`text-sm text-muted-foreground ${className}`} {...props}>{children}</p>
-);
+export const AlertDialogDescription = ({ children, className = "", id, ...props }) => {
+  const { descriptionId } = useContext(AlertDialogContext);
+  return (
+    <p id={id || descriptionId} className={`text-sm text-muted-foreground ${className}`} {...props}>{children}</p>
+  );
+};
 
 export const AlertDialogFooter = ({ children, className = "", ...props }) => (
   <div className={`flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 ${className}`} {...props}>{children}</div>
