@@ -2,7 +2,7 @@ import axios from "axios";
 
 const rawUrl =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
-  "http://localhost:5000";
+  "http://localhost:5001";
 
 const normalizedUrl = rawUrl.replace(/\/+$/, "");
 

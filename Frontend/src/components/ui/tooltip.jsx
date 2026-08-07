@@ -78,9 +78,15 @@ export const TooltipContent = ({ children, className = "", id, ...props }) => {
   const setCustomId = ctx?.setCustomId;
 
   useEffect(() => {
-    if (id && setCustomId) {
+    if (!setCustomId) return;
+    if (id) {
       setCustomId(id);
+    } else {
+      setCustomId(null);
     }
+    return () => {
+      setCustomId(null);
+    };
   }, [id, setCustomId]);
 
   const contentId = id || ctx?.tooltipId;
