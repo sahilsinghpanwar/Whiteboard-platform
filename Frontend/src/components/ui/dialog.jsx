@@ -1,155 +1,215 @@
-"use client"
+import React, { createContext, useContext, useState, useEffect, useRef, useId, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
-import * as React from "react"
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+const DialogContext = createContext({
+  open: false,
+  setOpen: () => {},
+  titleId: "",
+  descriptionId: "",
+});
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+export function Dialog({ open: controlledOpen, defaultOpen = false, onOpenChange, children }) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
 
-function Dialog({
-  ...props
-}) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
-}
+  const baseId = useId();
+  const titleId = `${baseId}-title`;
+  const descriptionId = `${baseId}-desc`;
 
-function DialogTrigger({
-  ...props
-}) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
-}
-
-function DialogPortal({
-  ...props
-}) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
-}
-
-function DialogClose({
-  ...props
-}) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
-}
-
-function DialogOverlay({
-  className,
-  ...props
-}) {
-  return (
-    <DialogPrimitive.Backdrop
-      data-slot="dialog-overlay"
-      className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className
-      )}
-      {...props} />
+  const setOpen = useCallback(
+    (value) => {
+      const nextOpen = typeof value === "function" ? value(open) : value;
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+    },
+    [isControlled, open, onOpenChange]
   );
-}
 
-function DialogContent({
-  className,
-  children,
-  showCloseButton = true,
-  ...props
-}) {
   return (
-    <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}>
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />
-            }>
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
-    </DialogPortal>
-  );
-}
-
-function DialogHeader({
-  className,
-  ...props
-}) {
-  return (
-    <div
-      data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
-      {...props} />
-  );
-}
-
-function DialogFooter({
-  className,
-  showCloseButton = false,
-  children,
-  ...props
-}) {
-  return (
-    <div
-      data-slot="dialog-footer"
-      className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
-        className
-      )}
-      {...props}>
+    <DialogContext.Provider value={{ open, setOpen, titleId, descriptionId }}>
       {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
-        </DialogPrimitive.Close>
-      )}
+    </DialogContext.Provider>
+  );
+}
+
+export function DialogTrigger({ children, asChild, onClick, className = "", ...props }) {
+  const { setOpen } = useContext(DialogContext);
+
+  const handleTriggerClick = (e) => {
+    onClick?.(e);
+    setOpen(true);
+  };
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      onClick: (e) => {
+        children.props.onClick?.(e);
+        handleTriggerClick(e);
+      },
+    });
+  }
+
+  return (
+    <button type="button" onClick={handleTriggerClick} className={cn("inline-block cursor-pointer", className)} {...props}>
+      {children}
+    </button>
+  );
+}
+
+export function DialogPortal({ children }) {
+  return <>{children}</>;
+}
+
+export function DialogOverlay({ className = "", onClick }) {
+  const { setOpen } = useContext(DialogContext);
+  return (
+    <div
+      className={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-sm", className)}
+      onClick={(e) => {
+        onClick?.(e);
+        setOpen(false);
+      }}
+    />
+  );
+}
+
+export function DialogClose({ children, onClick, ...props }) {
+  const { setOpen } = useContext(DialogContext);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        onClick?.(e);
+        setOpen(false);
+      }}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function DialogContent({ className = "", children, onClose, ...props }) {
+  const { open, setOpen, titleId, descriptionId } = useContext(DialogContext);
+  const contentRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  const handleClose = useCallback(
+    (e) => {
+      onClose?.(e);
+      setOpen(false);
+    },
+    [onClose, setOpen]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement;
+
+    const timer = setTimeout(() => {
+      if (contentRef.current) {
+        if (contentRef.current.contains(document.activeElement)) {
+          return;
+        }
+        const focusable = contentRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        } else {
+          contentRef.current.focus();
+        }
+      }
+    }, 0);
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose(e);
+        return;
+      }
+
+      if (e.key === "Tab" && contentRef.current) {
+        const focusable = Array.from(
+          contentRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute("disabled"));
+
+        if (focusable.length === 0) return;
+
+        const firstElement = focusable[0];
+        const lastElement = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === "function") {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [open, handleClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
+      <div
+        ref={contentRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className={cn("relative z-50 w-full max-w-lg rounded-xl border bg-background p-6 shadow-lg outline-none", className)}
+        {...props}
+      >
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={handleClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {children}
+      </div>
     </div>
   );
 }
 
-function DialogTitle({
-  className,
-  ...props
-}) {
-  return (
-    <DialogPrimitive.Title
-      data-slot="dialog-title"
-      className={cn("font-heading text-base leading-none font-medium", className)}
-      {...props} />
-  );
+export function DialogHeader({ className = "", ...props }) {
+  return <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />;
 }
 
-function DialogDescription({
-  className,
-  ...props
-}) {
-  return (
-    <DialogPrimitive.Description
-      data-slot="dialog-description"
-      className={cn(
-        "text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
-        className
-      )}
-      {...props} />
-  );
+export function DialogFooter({ className = "", ...props }) {
+  return <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4", className)} {...props} />;
 }
 
-export {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
-  DialogTrigger,
+export function DialogTitle({ className = "", ...props }) {
+  const { titleId } = useContext(DialogContext);
+  return <h2 id={titleId} className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />;
+}
+
+export function DialogDescription({ className = "", ...props }) {
+  const { descriptionId } = useContext(DialogContext);
+  return <p id={descriptionId} className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }

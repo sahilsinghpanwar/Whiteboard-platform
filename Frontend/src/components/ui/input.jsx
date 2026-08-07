@@ -1,0 +1,12 @@
+import React from "react";
+
+export const Input = React.forwardRef(({ className = "", type = "text", ...props }, ref) => (
+  <input
+    type={type}
+    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
+    ref={ref}
+    {...props}
+  />
+));
+
+Input.displayName = "Input";

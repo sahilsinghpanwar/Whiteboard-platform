@@ -1,117 +1,52 @@
-import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "react-hot-toast";
-import ProtectedRoute from "@/components/layout/Protectedroute.jsx";
-import { useAuthStore } from "@/features/auth/store/useAuthStore.js";
+import { Toaster } from "sonner";
+import "@/App.css";
 
-const LandingPage = lazy(() => import("@/pages/Landing.jsx"));
-const LoginPage = lazy(() => import("@/pages/auth/Login.jsx"));
-const RegisterPage = lazy(() => import("@/pages/auth/Register.jsx"));
-const GoogleCallbackPage = lazy(() => import("@/pages/auth/Googlecallbackpage.jsx"));
-const DashboardPage = lazy(() => import("@/pages/dashboard/Dashboard.jsx"));
-const BoardPage = lazy(() => import("@/pages/Whiteboard.jsx"));
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, 
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import GoogleSuccess from "@/pages/GoogleSuccess";
+import Dashboard from "@/pages/Dashboard";
+import BoardPage from "@/pages/BoardPage";
+import Settings from "@/pages/Settings";
 
-const PageLoader = () => (
-  <div
-    style={{
-      height: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-  >
-    <div
-      style={{
-        width: 28,
-        height: 28,
-        border: "2px solid var(--border)",
-        borderTopColor: "var(--accent)",
-        borderRadius: "50%",
-        animation: "spin 600ms linear infinite",
-      }}
-    />
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-  </div>
-);
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center label-mono">Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
 
-const App = () => {
-  const { checkAuth, isChecking } = useAuthStore();
-  useEffect(() => {
-    checkAuth();
-  }, []);
+const PublicOnly = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center label-mono">Loading…</div>;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return children;
+};
 
-  if (isChecking) {
-    return <PageLoader />;
-  }
-
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster position="top-right" richColors />
           <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/auth/google/success" element={<GoogleCallbackPage />} />
-
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/board/:boardId"
-              element={
-                <ProtectedRoute>
-                  <BoardPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Default redirect */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+            <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+            <Route path="/auth/google/success" element={<GoogleSuccess />} />
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/board/:boardId" element={<PrivateRoute><BoardPage /></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Suspense>
-      </BrowserRouter>
-
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: "var(--bg-elevated)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-md)",
-            fontSize: "var(--text-sm)",
-            fontFamily: "var(--font-sans)",
-          },
-          success: {
-            iconTheme: { primary: "var(--success)", secondary: "var(--bg-elevated)" },
-          },
-          error: {
-            iconTheme: { primary: "var(--danger)", secondary: "var(--bg-elevated)" },
-          },
-        }}
-      />
-    </QueryClientProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;

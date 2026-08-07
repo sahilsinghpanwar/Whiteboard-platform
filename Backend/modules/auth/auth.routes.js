@@ -31,6 +31,11 @@ router.get(
 );
 
 router.post(
+  "/refresh",
+  asyncHandler(authController.refresh)
+);
+
+router.post(
   "/logout",
   protect,
   asyncHandler(authController.logout)
