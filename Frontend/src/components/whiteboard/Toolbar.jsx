@@ -7,7 +7,7 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
   return (
     <TooltipProvider delayDuration={200}>
       <div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 rounded-2xl glass float-shadow"
+        className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5 rounded-2xl glass float-shadow max-w-[calc(100vw-1.5rem)] overflow-x-auto no-scrollbar"
         data-testid="whiteboard-toolbar"
       >
         {TOOLS.map((t) => {
@@ -21,7 +21,7 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                   onClick={() => onSelectTool(t.id)}
                   data-testid={`tool-${t.id}`}
                   className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+                    "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors",
                     "hover:bg-primary/10 active:scale-95",
                     active && "bg-primary text-primary-foreground hover:bg-primary",
                     !canEdit && t.id !== "select" && "opacity-40 cursor-not-allowed"
@@ -36,16 +36,16 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
           );
         })}
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-5 sm:h-6 bg-border mx-0.5 sm:mx-1 shrink-0" />
 
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-accent"
+              className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center hover:bg-accent"
               data-testid="tool-color-picker"
               aria-label="Color"
             >
-              <span className="w-5 h-5 rounded-full border" style={{ background: color }} />
+              <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border" style={{ background: color }} />
             </button>
           </PopoverTrigger>
           <PopoverContent side="top" className="w-auto p-2">
@@ -54,9 +54,9 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                 <button
                   key={c}
                   onClick={() => onColorChange(c)}
-                   aria-label={`Color ${c}`}
-                   aria-pressed={color === c}
-                  className={cn("w-7 h-7 rounded-full border-2", color === c ? "ring-2 ring-primary ring-offset-1" : "")}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={color === c}
+                  className={cn("w-7 h-7 rounded-full border-2 cursor-pointer", color === c ? "ring-2 ring-primary ring-offset-1" : "")}
                   style={{ background: c }}
                   data-testid={`color-${c.replace("#", "")}`}
                 />
@@ -69,8 +69,8 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                   key={w}
                   onClick={() => onStrokeChange(w)}
                   aria-label={`Stroke width ${w}`}
-                   aria-pressed={strokeWidth === w}
-                  className={cn("h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent", strokeWidth === w && "bg-primary/10 ring-1 ring-primary")}
+                  aria-pressed={strokeWidth === w}
+                  className={cn("h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent cursor-pointer", strokeWidth === w && "bg-primary/10 ring-1 ring-primary")}
                   data-testid={`stroke-${w}`}
                 >
                   <span className="rounded-full bg-foreground" style={{ width: w * 2, height: w * 2 }} />
