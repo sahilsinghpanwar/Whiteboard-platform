@@ -9,7 +9,7 @@ passport.use(
     {
       clientID: env.GOOGLE_CLIENT_ID || "placeholder_client_id",
       clientSecret: env.GOOGLE_CLIENT_SECRET || "placeholder_client_secret",
-      callbackURL: env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/v1/auth/google/callback",
+      callbackURL: env.GOOGLE_CALLBACK_URL || "http://localhost:5001/api/v1/auth/google/callback",
 
       scope: ["profile", "email"],
     },
