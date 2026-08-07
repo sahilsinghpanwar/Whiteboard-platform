@@ -41,6 +41,7 @@ export default function BoardPage() {
   const [saving, setSaving] = useState(false);
   const [scale, setScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [isDockOpen, setIsDockOpen] = useState(() => window.innerWidth >= 1024);
 
   const userId = user?._id || user?.id;
   const ownerId = board?.owner?._id || board?.owner;
@@ -216,15 +217,18 @@ export default function BoardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, canEdit]);
 
-  // Image tool: trigger file picker
   const fileRef = useRef(null);
-  useEffect(() => {
-    if (activeTool === "image" && canEdit) {
-      fileRef.current?.click();
+
+  const handleSelectTool = useCallback((tool) => {
+    if (tool === "image") {
+      if (canEdit) {
+        fileRef.current?.click();
+      }
       setActiveTool("select");
+      return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTool]);
+    setActiveTool(tool);
+  }, [canEdit]);
 
   // Export
   const onExport = async (type) => {
@@ -263,7 +267,7 @@ export default function BoardPage() {
   if (!board) return <div className="min-h-screen flex items-center justify-center label-mono">Loading board…</div>;
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-background">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-background">
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageInsert(f); e.target.value = ""; }}
         data-testid="hidden-image-upload" />
@@ -285,20 +289,32 @@ export default function BoardPage() {
       <TopBar
         board={board} activeUsers={activeUsers} canEdit={canEdit}
         saving={saving} onRename={onRename} onExport={onExport}
+        isDockOpen={isDockOpen}
+        onToggleDock={() => setIsDockOpen((prev) => !prev)}
       />
 
       <Toolbar
-        activeTool={activeTool} onSelectTool={setActiveTool}
+        activeTool={activeTool} onSelectTool={handleSelectTool}
         color={color} onColorChange={setColor}
         strokeWidth={strokeWidth} onStrokeChange={setStrokeWidth}
         canEdit={canEdit}
       />
+
+      {isDockOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden"
+          onClick={() => setIsDockOpen(false)}
+          data-testid="dock-backdrop"
+        />
+      )}
 
       <RightDock
         boardId={boardId} board={board} currentUser={user}
         selectedElements={selectedElements}
         onBoardUpdate={setBoard}
         onChat={onChat} emitChat={emitChat}
+        isOpen={isDockOpen}
+        onClose={() => setIsDockOpen(false)}
       />
 
       {!connected && (
