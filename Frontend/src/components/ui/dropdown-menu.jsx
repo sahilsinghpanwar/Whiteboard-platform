@@ -35,6 +35,15 @@ export const DropdownMenuTrigger = ({ children, asChild, onClick, ...props }) =>
     if (onClick) onClick(e);
   };
 
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      onClick: (e) => {
+        children.props.onClick?.(e);
+        handleTriggerClick(e);
+      },
+    });
+  }
+
   return (
     <div onClick={handleTriggerClick} className="cursor-pointer inline-block" {...props}>
       {children}
@@ -57,7 +66,7 @@ export const DropdownMenuContent = ({ children, className = "", align = "right" 
   );
 };
 
-export const DropdownMenuItem = ({ children, onClick, className = "" }) => {
+export const DropdownMenuItem = ({ children, onClick, className = "", ...props }) => {
   const ctx = useContext(DropdownContext);
   const handleItemClick = (e) => {
     if (onClick) onClick(e);
@@ -65,12 +74,14 @@ export const DropdownMenuItem = ({ children, onClick, className = "" }) => {
   };
 
   return (
-    <div
+    <button
+      type="button"
       onClick={handleItemClick}
-      className={`relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2 text-sm font-medium outline-none hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-white transition-colors ${className}`}
+      className={`relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2 text-sm font-medium outline-none hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-white transition-colors ${className}`}
+      {...props}
     >
       {children}
-    </div>
+    </button>
   );
 };
 

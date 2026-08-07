@@ -14,16 +14,19 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("editor");
   const [busy, setBusy] = useState(false);
+  const [busyMemberId, setBusyMemberId] = useState(null);
 
   const userId = currentUser?._id || currentUser?.id;
   const ownerId = board?.owner?._id || board?.owner;
   const isOwner = String(ownerId) === String(userId);
 
   const invite = async () => {
-    if (!email.trim()) return toast.error("Email required");
+    const value = email.trim();
+    if (!value) { toast.error("Email required"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { toast.error("Enter a valid email"); return; }
     setBusy(true);
     try {
-      const updated = await boardApi.invite(board._id, { email: email.trim(), role });
+      const updated = await boardApi.invite(board._id, { email: value, role });
       onBoardUpdate?.(updated?.data ?? updated);
       toast.success("Invitation sent");
       setEmail("");
@@ -32,19 +35,25 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
   };
 
   const updateRole = async (memberId, newRole) => {
+    if (busyMemberId === memberId || busy) return;
+    setBusyMemberId(memberId);
     try {
       const updated = await boardApi.updateRole(board._id, memberId, newRole);
       onBoardUpdate?.(updated?.data ?? updated);
       toast.success("Role updated");
     } catch (e) { toast.error(e?.response?.data?.message || "Could not update"); }
+    finally { setBusyMemberId(null); }
   };
 
   const removeMember = async (memberId) => {
+    if (busyMemberId === memberId || busy) return;
+    setBusyMemberId(memberId);
     try {
       const updated = await boardApi.removeMember(board._id, memberId);
       onBoardUpdate?.(updated?.data ?? updated);
       toast.success("Member removed");
     } catch (e) { toast.error(e?.response?.data?.message || "Could not remove"); }
+    finally { setBusyMemberId(null); }
   };
 
   return (
@@ -66,7 +75,7 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
               </SelectContent>
             </Select>
           </div>
-          <Button className="w-full gap-1.5" onClick={invite} disabled={busy} data-testid="invite-submit-btn">
+          <Button className="w-full gap-1.5" onClick={invite} disabled={busy || Boolean(busyMemberId)} data-testid="invite-submit-btn">
             <UserPlus size={16} /> {busy ? "Inviting…" : "Send invitation"}
           </Button>
         </div>
@@ -87,6 +96,7 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
           </div>
           {(board.members || []).map((m) => {
             const memberId = m.userId?._id || m.userId;
+            const isMemberBusy = busyMemberId === memberId || busy;
             return (
               <div key={memberId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50" data-testid={`member-row-${memberId}`}>
                 <UserAvatar user={m.userId || m} size={32} />
@@ -97,7 +107,7 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
                 {m.status === "pending"
                   ? <Badge variant="outline" className="text-[10px] font-mono uppercase">pending</Badge>
                   : isOwner ? (
-                    <Select value={m.role} onValueChange={(v) => updateRole(memberId, v)}>
+                    <Select value={m.role} onValueChange={(v) => updateRole(memberId, v)} disabled={isMemberBusy}>
                       <SelectTrigger className="w-24 h-8" data-testid={`member-role-${memberId}`}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="editor">Editor</SelectItem>
@@ -110,7 +120,7 @@ export default function MembersPanel({ board, currentUser, onBoardUpdate }) {
                 {isOwner && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <button className="text-muted-foreground hover:text-destructive p-1" data-testid={`remove-member-${memberId}`}>
+                      <button className="text-muted-foreground hover:text-destructive p-1 disabled:opacity-50 disabled:pointer-events-none" disabled={isMemberBusy} data-testid={`remove-member-${memberId}`}>
                         <Trash size={14} />
                       </button>
                     </AlertDialogTrigger>

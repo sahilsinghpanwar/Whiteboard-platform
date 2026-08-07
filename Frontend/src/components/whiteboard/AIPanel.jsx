@@ -8,9 +8,13 @@ import { toast } from "sonner";
 import { aiApi } from "@/lib/services";
 import { Sparkle, ArrowClockwise, Lightning, Article, MagicWand } from "@phosphor-icons/react";
 
-const Section = ({ title, children }) => (
+const Section = ({ title, children, id }) => (
   <div className="space-y-2">
-    <div className="label-mono">{title}</div>
+    {id ? (
+      <label htmlFor={id} className="label-mono block cursor-pointer">{title}</label>
+    ) : (
+      <div className="label-mono">{title}</div>
+    )}
     {children}
   </div>
 );
@@ -48,6 +52,7 @@ export default function AIPanel({ boardId, selectedElements }) {
   const [improveResult, setImproveResult] = useState(null);
 
   const wrap = async (fn, setter) => {
+    setter(null);
     setBusy(true);
     try {
       const res = await fn();
@@ -78,18 +83,18 @@ export default function AIPanel({ boardId, selectedElements }) {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="mx-3 mt-3 grid grid-cols-5 h-9">
-          <TabsTrigger value="agent" data-testid="ai-tab-agent"><Sparkle size={14} /></TabsTrigger>
-          <TabsTrigger value="brainstorm" data-testid="ai-tab-brainstorm"><Lightning size={14} /></TabsTrigger>
-          <TabsTrigger value="diagram" data-testid="ai-tab-diagram"><MagicWand size={14} /></TabsTrigger>
-          <TabsTrigger value="summary" data-testid="ai-tab-summary"><Article size={14} /></TabsTrigger>
-          <TabsTrigger value="improve" data-testid="ai-tab-improve"><ArrowClockwise size={14} /></TabsTrigger>
+          <TabsTrigger value="agent" aria-label="Ask the agent" data-testid="ai-tab-agent"><Sparkle size={14} /></TabsTrigger>
+          <TabsTrigger value="brainstorm" aria-label="Brainstorm ideas" data-testid="ai-tab-brainstorm"><Lightning size={14} /></TabsTrigger>
+          <TabsTrigger value="diagram" aria-label="Generate diagram" data-testid="ai-tab-diagram"><MagicWand size={14} /></TabsTrigger>
+          <TabsTrigger value="summary" aria-label="Summarize board" data-testid="ai-tab-summary"><Article size={14} /></TabsTrigger>
+          <TabsTrigger value="improve" aria-label="Improve selected text" data-testid="ai-tab-improve"><ArrowClockwise size={14} /></TabsTrigger>
         </TabsList>
 
         <ScrollArea className="flex-1">
           <div className="p-4">
             <TabsContent value="agent" className="mt-0">
-              <Section title="Ask the agent">
-                <Textarea placeholder="e.g. 'Draft a login flow diagram with 3 states'" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} data-testid="ai-agent-input" />
+              <Section title="Ask the agent" id="ai-agent-prompt">
+                <Textarea id="ai-agent-prompt" placeholder="e.g. 'Draft a login flow diagram with 3 states'" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} data-testid="ai-agent-input" />
                 <Button className="w-full" onClick={runAgent} disabled={busy || !prompt.trim()} data-testid="ai-agent-run">
                   {busy ? "Thinking…" : "Run"}
                 </Button>
@@ -99,16 +104,16 @@ export default function AIPanel({ boardId, selectedElements }) {
             </TabsContent>
 
             <TabsContent value="brainstorm" className="mt-0">
-              <Section title="Brainstorm ideas">
-                <Input placeholder="Topic (e.g. 'growth ideas for a SaaS')" value={topic} onChange={(e) => setTopic(e.target.value)} data-testid="ai-brainstorm-input" />
+              <Section title="Brainstorm ideas" id="ai-brainstorm-topic">
+                <Input id="ai-brainstorm-topic" placeholder="Topic (e.g. 'growth ideas for a SaaS')" value={topic} onChange={(e) => setTopic(e.target.value)} data-testid="ai-brainstorm-input" />
                 <Button className="w-full" onClick={runBrainstorm} disabled={busy || !topic.trim()} data-testid="ai-brainstorm-run">Generate</Button>
                 <ResultBlock result={brainstormResult} />
               </Section>
             </TabsContent>
 
             <TabsContent value="diagram" className="mt-0">
-              <Section title="Generate diagram">
-                <Textarea placeholder="Describe the process or system" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} data-testid="ai-diagram-input" />
+              <Section title="Generate diagram" id="ai-diagram-desc">
+                <Textarea id="ai-diagram-desc" placeholder="Describe the process or system" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} data-testid="ai-diagram-input" />
                 <Button className="w-full" onClick={runDiagram} disabled={busy || !description.trim()} data-testid="ai-diagram-run">Generate</Button>
                 <ResultBlock result={diagramResult} />
               </Section>
@@ -123,10 +128,10 @@ export default function AIPanel({ boardId, selectedElements }) {
             </TabsContent>
 
             <TabsContent value="improve" className="mt-0">
-              <Section title="Improve selected text">
-                <Input placeholder="Instruction (e.g. 'make it more concise')" value={instruction} onChange={(e) => setInstruction(e.target.value)} data-testid="ai-improve-input" />
+              <Section title="Improve selected text" id="ai-improve-instruction">
+                <Input id="ai-improve-instruction" placeholder="Instruction (e.g. 'make it more concise')" value={instruction} onChange={(e) => setInstruction(e.target.value)} data-testid="ai-improve-input" />
                 <div className="text-[10px] font-mono text-muted-foreground">{selectedElements.length} element(s) selected</div>
-                <Button className="w-full" onClick={runImprove} disabled={busy || selectedElements.length === 0} data-testid="ai-improve-run">Improve</Button>
+                <Button className="w-full" onClick={runImprove} disabled={busy || selectedElements.length === 0 || !instruction.trim()} data-testid="ai-improve-run">Improve</Button>
                 <ResultBlock result={improveResult} />
               </Section>
             </TabsContent>

@@ -61,14 +61,24 @@ export default function Canvas({
   setSelectedIds,
   width,
   height,
+  scale: propScale,
+  setScale: propSetScale,
+  stagePos: propStagePos,
+  setStagePos: propSetStagePos,
 }) {
   const stageRef = useRef(null);
   const trRef = useRef(null);
   const layerRef = useRef(null);
 
   const [drawing, setDrawing] = useState(null);
-  const [scale, setScale] = useState(1);
-  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [internalScale, setInternalScale] = useState(1);
+  const [internalStagePos, setInternalStagePos] = useState({ x: 0, y: 0 });
+
+  const scale = propScale !== undefined ? propScale : internalScale;
+  const setScale = propSetScale || setInternalScale;
+
+  const stagePos = propStagePos !== undefined ? propStagePos : internalStagePos;
+  const setStagePos = propSetStagePos || setInternalStagePos;
   const [editingText, setEditingText] = useState(null);
   const eraserActiveRef = useRef(false);
 
@@ -86,6 +96,8 @@ export default function Canvas({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!canEdit || editingText) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
         e.preventDefault();
         onElementsDelete(selectedIds);
@@ -516,6 +528,11 @@ export default function Canvas({
         onTouchEnd={handleMouseUp}
         onWheel={handleWheel}
         draggable={activeTool === "select" && selectedIds.length === 0}
+        onDragMove={(e) => {
+          if (e.target === stageRef.current) {
+            setStagePos({ x: e.target.x(), y: e.target.y() });
+          }
+        }}
         onDragEnd={(e) => {
           if (e.target === stageRef.current) {
             setStagePos({ x: e.target.x(), y: e.target.y() });

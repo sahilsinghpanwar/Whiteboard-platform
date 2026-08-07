@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { authApi } from "../lib/services";
+import { setAccessToken } from "../lib/api";
 
 const AuthContext = createContext(null);
 
@@ -7,61 +8,84 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshMe = useCallback(async () => {
-    try {
-      const data = await authApi.me();
-      const u = data?.user ?? data;
-      setUser(u);
-      return u;
-    } catch {
-      setUser(null);
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) { setLoading(false); return; }
-    refreshMe().finally(() => setLoading(false));
-  }, [refreshMe]);
-
-  const handleAuthPayload = (payload) => {
-    // Backend wraps: { statusCode, message, data: { accessToken, refreshToken, user } }
-    // OR nested differently. Normalize both.
+  const handleAuthPayload = useCallback((payload) => {
     const data = payload?.data ?? payload;
     const token = data?.accessToken;
     const u = data?.user;
-    if (token) localStorage.setItem("accessToken", token);
+    if (token) setAccessToken(token);
     if (u) setUser(u);
     return u;
-  };
+  }, []);
 
-  const login = async (email, password) => {
-    const res = await authApi.login({ email, password });
-    return handleAuthPayload(res);
-  };
+  const refreshMe = useCallback(async () => {
+    try {
+      const data = await authApi.refresh();
+      return handleAuthPayload(data);
+    } catch {
+      try {
+        const data = await authApi.me();
+        const u = data?.user ?? data;
+        setUser(u);
+        return u;
+      } catch {
+        setAccessToken(null);
+        setUser(null);
+        return null;
+      }
+    }
+  }, [handleAuthPayload]);
 
-  const register = async (fullName, email, password) => {
-    const res = await authApi.register({ fullName, email, password });
-    return handleAuthPayload(res);
-  };
+  useEffect(() => {
+    refreshMe().finally(() => setLoading(false));
+  }, [refreshMe]);
 
-  const logout = async () => {
-    try { await authApi.logout(); } catch {}
-    localStorage.removeItem("accessToken");
-    setUser(null);
-  };
-
-  const setTokenAndRefresh = async (token) => {
-    localStorage.setItem("accessToken", token);
-    return refreshMe();
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, refreshMe, setTokenAndRefresh }}>
-      {children}
-    </AuthContext.Provider>
+  const login = useCallback(
+    async (email, password) => {
+      const res = await authApi.login({ email, password });
+      return handleAuthPayload(res);
+    },
+    [handleAuthPayload]
   );
+
+  const register = useCallback(
+    async (fullName, email, password) => {
+      const res = await authApi.register({ fullName, email, password });
+      return handleAuthPayload(res);
+    },
+    [handleAuthPayload]
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {}
+    setAccessToken(null);
+    setUser(null);
+  }, []);
+
+  const setTokenAndRefresh = useCallback(
+    async (token) => {
+      if (token) setAccessToken(token);
+      return refreshMe();
+    },
+    [refreshMe]
+  );
+
+  const value = useMemo(
+    () => ({
+      user,
+      setUser,
+      loading,
+      login,
+      register,
+      logout,
+      refreshMe,
+      setTokenAndRefresh,
+    }),
+    [user, loading, login, register, logout, refreshMe, setTokenAndRefresh]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

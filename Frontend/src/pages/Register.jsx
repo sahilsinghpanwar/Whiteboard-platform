@@ -57,11 +57,11 @@ export default function Register() {
             <p className="text-sm text-muted-foreground mt-1.5">No credit card. Free forever tier.</p>
           </div>
 
-          <a href={authApi.googleUrl()} data-testid="google-signup-btn">
-            <Button type="button" variant="outline" className="w-full h-11 rounded-lg gap-2">
+          <Button asChild variant="outline" className="w-full h-11 rounded-lg gap-2">
+            <a href={authApi.googleUrl()} data-testid="google-signup-btn">
               <GoogleLogo size={18} weight="bold" /> Continue with Google
-            </Button>
-          </a>
+            </a>
+          </Button>
 
           <div className="flex items-center gap-3 my-6">
             <span className="h-px flex-1 bg-border" />

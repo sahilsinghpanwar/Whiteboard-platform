@@ -54,6 +54,8 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                 <button
                   key={c}
                   onClick={() => onColorChange(c)}
+                   aria-label={`Color ${c}`}
+                   aria-pressed={color === c}
                   className={cn("w-7 h-7 rounded-full border-2", color === c ? "ring-2 ring-primary ring-offset-1" : "")}
                   style={{ background: c }}
                   data-testid={`color-${c.replace("#", "")}`}
@@ -66,6 +68,8 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                 <button
                   key={w}
                   onClick={() => onStrokeChange(w)}
+                  aria-label={`Stroke width ${w}`}
+                   aria-pressed={strokeWidth === w}
                   className={cn("h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent", strokeWidth === w && "bg-primary/10 ring-1 ring-primary")}
                   data-testid={`stroke-${w}`}
                 >

@@ -21,13 +21,22 @@ const buttonSizeStyles = {
   "icon-lg": "h-10 w-10",
 };
 
-const baseStyle = "group/button inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+const baseStyle = "group/button inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const buttonVariants = ({ variant = "default", size = "default", className = "" } = {}) => {
   return cn(baseStyle, buttonVariantStyles[variant] || buttonVariantStyles.default, buttonSizeStyles[size] || buttonSizeStyles.default, className);
 };
 
-export const Button = React.forwardRef(({ className, variant = "default", size = "default", type = "button", ...props }, ref) => {
+export const Button = React.forwardRef(({ className, variant = "default", size = "default", type = "button", asChild = false, ...props }, ref) => {
+  if (asChild && React.isValidElement(props.children)) {
+    const { children, ...restProps } = props;
+    return React.cloneElement(children, {
+      className: cn(buttonVariants({ variant, size, className }), children.props.className),
+      ref,
+      ...restProps,
+    });
+  }
   return (
     <button
       type={type}

@@ -39,6 +39,8 @@ export default function BoardPage() {
   const [color, setColor] = useState("#111111");
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [saving, setSaving] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
 
   const userId = user?._id || user?.id;
   const ownerId = board?.owner?._id || board?.owner;
@@ -108,6 +110,8 @@ export default function BoardPage() {
   useEffect(() => {
     const handler = (e) => {
       if (e.target?.tagName === "INPUT" || e.target?.tagName === "TEXTAREA") return;
+      if (e.target?.isContentEditable) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const key = e.key.toLowerCase();
       if (SHORTCUT_MAP[key]) { setActiveTool(SHORTCUT_MAP[key]); }
     };
@@ -131,9 +135,43 @@ export default function BoardPage() {
     if (canEdit) emitCollab("element:delete", { boardId, elementIds: ids });
   }, [emitCollab, boardId, canEdit]);
 
-  const onCursorMove = useCallback((pos) => {
+  const lastCursorEmitRef = useRef(0);
+  const pendingCursorTimerRef = useRef(null);
+  const latestCursorPosRef = useRef(null);
+
+  const emitCursor = useCallback((pos) => {
     emitCollab("cursor:move", { boardId, x: pos.x, y: pos.y });
+    lastCursorEmitRef.current = Date.now();
   }, [emitCollab, boardId]);
+
+  const onCursorMove = useCallback((pos) => {
+    latestCursorPosRef.current = pos;
+    const now = Date.now();
+    const elapsed = now - lastCursorEmitRef.current;
+
+    if (elapsed >= 50) {
+      if (pendingCursorTimerRef.current) {
+        clearTimeout(pendingCursorTimerRef.current);
+        pendingCursorTimerRef.current = null;
+      }
+      emitCursor(pos);
+    } else if (!pendingCursorTimerRef.current) {
+      pendingCursorTimerRef.current = setTimeout(() => {
+        pendingCursorTimerRef.current = null;
+        if (latestCursorPosRef.current) {
+          emitCursor(latestCursorPosRef.current);
+        }
+      }, 50 - elapsed);
+    }
+  }, [emitCursor]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingCursorTimerRef.current) {
+        clearTimeout(pendingCursorTimerRef.current);
+      }
+    };
+  }, []);
 
   const onRename = async (title) => {
     setSaving(true);
@@ -238,9 +276,11 @@ export default function BoardPage() {
         activeTool={activeTool} color={color} strokeWidth={strokeWidth} canEdit={canEdit}
         selectedIds={selectedIds} setSelectedIds={setSelectedIds}
         width={w} height={h}
+        scale={scale} setScale={setScale}
+        stagePos={stagePos} setStagePos={setStagePos}
       />
 
-      <PresenceCursors cursors={cursorList} />
+      <PresenceCursors cursors={cursorList} scale={scale} stagePos={stagePos} />
 
       <TopBar
         board={board} activeUsers={activeUsers} canEdit={canEdit}

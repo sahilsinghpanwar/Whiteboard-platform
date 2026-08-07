@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,15 @@ export default function TopBar({
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
+  const titleProp = board?.title || "Untitled Board";
+  const [title, setTitle] = useState(titleProp);
+  const [prevTitleProp, setPrevTitleProp] = useState(titleProp);
+
+  if (titleProp !== prevTitleProp) {
+    setPrevTitleProp(titleProp);
+    setTitle(titleProp);
+  }
+
   const containerClass = isDark
     ? "bg-black text-white border-neutral-800 shadow-md"
     : "bg-white text-gray-900 border-slate-200 shadow-md";
@@ -47,8 +57,19 @@ export default function TopBar({
         <div className={`w-px h-5 ${dividerClass}`} />
         <input
           className="bg-transparent outline-none text-sm font-semibold tracking-tight w-48 focus:ring-2 focus:ring-primary/30 rounded px-1"
-          defaultValue={board?.title || "Untitled Board"}
-          onBlur={(e) => e.target.value !== board?.title && onRename?.(e.target.value)}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={(e) => {
+            const val = e.target.value.trim();
+            if (val && val !== board?.title) {
+              onRename?.(val);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.target.blur();
+            }
+          }}
           data-testid="board-title-input"
           disabled={!canEdit}
         />
@@ -71,7 +92,7 @@ export default function TopBar({
             const role = u.role || "Member";
 
             return (
-              <Popover key={u._id || u.id || name}>
+              <Popover key={u.userId || u._id || u.id || name}>
                 <PopoverTrigger asChild>
                   <button
                     className="ring-2 ring-background rounded-full hover:scale-105 transition-transform outline-none cursor-pointer"

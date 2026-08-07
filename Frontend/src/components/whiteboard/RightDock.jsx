@@ -39,8 +39,8 @@ import AIPanel from "./AIPanel";
 import MembersPanel from "./MembersPanel";
 
 export default function RightDock({
-  boardId, board, currentUser, activeUsers = [], selectedElements,
-  onBoardUpdate, onChat, emitChat, onElementsAdd,
+  boardId, board, currentUser, selectedElements,
+  onBoardUpdate, onChat, emitChat,
 }) {
   return (
     <aside className="absolute top-4 right-4 bottom-4 w-80 z-40 flex flex-col bg-card border rounded-2xl float-shadow overflow-hidden">
@@ -62,15 +62,11 @@ export default function RightDock({
         </TabsContent>
 
         <TabsContent value="ai" className="flex-1 mt-2 overflow-hidden">
-          <AIPanel
-            boardId={boardId}
-            selectedElements={selectedElements}
-            onElementsAdd={onElementsAdd}
-          />
+          <AIPanel boardId={boardId} selectedElements={selectedElements} />
         </TabsContent>
 
         <TabsContent value="members" className="flex-1 mt-2 overflow-hidden">
-          <MembersPanel board={board} currentUser={currentUser} activeUsers={activeUsers} onBoardUpdate={onBoardUpdate}/>
+          <MembersPanel board={board} currentUser={currentUser} onBoardUpdate={onBoardUpdate} />
         </TabsContent>
       </Tabs>
     </aside>

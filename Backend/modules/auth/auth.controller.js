@@ -1,6 +1,6 @@
 import { authService } from "./auth.service.js";
 import ApiResponse from "../../core/utils/ApiResponse.js";
-import { getRefreshTokenCookieOptions } from "../../core/utils/jwt.js";
+import { getRefreshTokenCookieOptions, verifyRefreshToken, signAccessToken } from "../../core/utils/jwt.js";
 import { env } from "../../core/config/env.js";
 
 const sendAuthResponse = (res, statusCode, message, authPayload) => {
@@ -11,7 +11,7 @@ const sendAuthResponse = (res, statusCode, message, authPayload) => {
   const userJson = user?.toPublicJSON ? user.toPublicJSON() : user;
 
   return res.status(statusCode).json(
-    new ApiResponse(statusCode, message, { accessToken, refreshToken, user: userJson })
+    new ApiResponse(statusCode, message, { accessToken, user: userJson })
   );
 };
 
@@ -28,6 +28,20 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   const user = await authService.getProfile(req.user._id.toString());
   return ApiResponse.ok(res, "Profile fetched successfully", { user });
+};
+
+const refresh = async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken) {
+    return res.status(401).json(new ApiResponse(401, "No refresh token provided"));
+  }
+  const decoded = verifyRefreshToken(refreshToken);
+  const user = await authService.getProfile(decoded.userId);
+  const accessToken = signAccessToken(user._id.toString());
+  const userJson = user?.toPublicJSON ? user.toPublicJSON() : user;
+  return res.status(200).json(
+    new ApiResponse(200, "Token refreshed successfully", { accessToken, user: userJson })
+  );
 };
 
 const logout = async (req, res) => {
@@ -53,6 +67,7 @@ export const authController = {
   register,
   login,
   getProfile,
+  refresh,
   logout,
   googleCallback,
 };

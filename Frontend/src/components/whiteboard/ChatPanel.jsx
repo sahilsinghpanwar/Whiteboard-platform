@@ -16,15 +16,17 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
   const typingTimerRef = useRef(null);
 
   useEffect(() => {
+    let ignore = false;
     (async () => {
       try {
         const res = await chatApi.history(boardId);
         const list = Array.isArray(res) ? res : res?.data ?? [];
-        setMessages(list);
+        if (!ignore) setMessages(list);
       } catch (e) {
         console.error("Failed to fetch chat history", e);
       }
     })();
+    return () => { ignore = true; };
   }, [boardId]);
 
   useEffect(() => {
@@ -44,11 +46,15 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
     const off4 = onChat("chat:stop-typing", ({ userId }) =>
       setTyping((prev) => prev.filter((t) => t.userId !== userId))
     );
+    const off5 = onChat("error", (err) => {
+      toast.error(err?.message || "Could not delete message");
+    });
     return () => {
       off1();
       off2();
       off3();
       off4();
+      off5();
     };
   }, [onChat]);
 
@@ -74,12 +80,12 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
     );
   };
 
-  const del = async (msg) => {
-    try {
-      emitChat("chat:delete", { boardId, messageId: msg._id });
-    } catch {
-      toast.error("Could not delete message");
-    }
+  const del = (msg) => {
+    emitChat("chat:delete", { boardId, messageId: msg._id }, (res) => {
+      if (res?.error) {
+        toast.error("Could not delete message");
+      }
+    });
   };
 
   const myId = currentUser?._id || currentUser?.id;
@@ -93,7 +99,7 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
               No messages yet. Say hi 👋
             </div>
           )}
-          {messages.map((m) => {
+          {messages.map((m, index) => {
             const senderId = m.sender?._id || m.sender?.id || m.sender;
             const mine = String(senderId) === String(myId);
             const senderName =
@@ -101,7 +107,7 @@ export default function ChatPanel({ boardId, currentUser, onChat, emitChat }) {
 
             return (
               <div
-                key={m._id || Math.random()}
+                key={m._id || m.id || `${m.createdAt || ""}-${index}`}
                 className={`group flex items-end gap-2 ${
                   mine ? "flex-row-reverse" : "flex-row"
                 }`}

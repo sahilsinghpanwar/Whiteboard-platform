@@ -43,19 +43,26 @@ export default function Settings() {
   };
 
   const onAvatar = async (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const res = await uploadApi.avatar(file);
       const url = res?.url || res?.data?.url || res?.profileImageUrl;
-      if (url) {
-        const updated = await userApi.updateProfile({ profileImageUrl: url });
-        setUser(updated?.data ?? updated);
+      if (!url) {
+        toast.error("Upload failed: No image URL returned");
+        return;
       }
+      const updated = await userApi.updateProfile({ profileImageUrl: url });
+      setUser(updated?.data ?? updated);
       toast.success("Avatar updated");
-    } catch (e) { toast.error(e?.response?.data?.message || "Upload failed"); }
-    finally { setUploading(false); }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      input.value = "";
+    }
   };
 
   return (
@@ -76,8 +83,8 @@ export default function Settings() {
           <h2 className="text-lg font-semibold tracking-tight mb-6">Profile</h2>
           <div className="flex items-center gap-5 mb-6">
             <UserAvatar user={user} size={72} />
-            <label className="cursor-pointer">
-              <input type="file" accept="image/*" className="hidden" onChange={onAvatar} data-testid="avatar-upload-input" />
+            <label htmlFor="avatar-upload" className="cursor-pointer">
+              <input id="avatar-upload" type="file" accept="image/*" className="sr-only" onChange={onAvatar} data-testid="avatar-upload-input" />
               <div className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border hover:bg-accent transition-colors text-sm">
                 <UploadSimple size={16} /> {uploading ? "Uploading…" : "Change avatar"}
               </div>
