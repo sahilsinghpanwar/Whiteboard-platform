@@ -48,10 +48,11 @@ const logout = async (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
   });
   return ApiResponse.ok(res, "Logged out successfully", null);
 };
+
 
 const googleCallback = async (req, res) => {
   const { refreshToken } = req.user;
