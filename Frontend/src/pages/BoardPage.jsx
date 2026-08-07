@@ -267,7 +267,7 @@ export default function BoardPage() {
   if (!board) return <div className="min-h-screen flex items-center justify-center label-mono">Loading board…</div>;
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-background">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-background">
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageInsert(f); e.target.value = ""; }}
         data-testid="hidden-image-upload" />

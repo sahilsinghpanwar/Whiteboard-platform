@@ -93,7 +93,7 @@ export default function TopBar({
       {/* Right Section: Active Users + Export + Theme + Dock Toggle */}
       <div className={`pointer-events-auto flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl border ${containerClass}`}>
         <div className="flex items-center -space-x-1.5 sm:-space-x-2" data-testid="presence-avatars">
-          {users.slice(0, 3).map((u) => {
+          {users.slice(0, 4).map((u, idx) => {
             const name = u.fullName || u.name || u.email || "Active User";
             const email = u.email || "";
             const role = u.role || "Member";
@@ -102,7 +102,9 @@ export default function TopBar({
               <Popover key={u.userId || u._id || u.id || name}>
                 <PopoverTrigger asChild>
                   <button
-                    className="ring-2 ring-background rounded-full hover:scale-105 transition-transform outline-none cursor-pointer"
+                    className={`ring-2 ring-background rounded-full hover:scale-105 transition-transform outline-none cursor-pointer ${
+                      idx >= 2 ? "hidden sm:inline-block" : ""
+                    }`}
                     title={`Click to view profile of ${name}`}
                   >
                     <UserAvatar user={u} size={24} className="sm:w-7 sm:h-7" />
@@ -124,9 +126,9 @@ export default function TopBar({
             );
           })}
 
-          {users.length > 3 && (
+          {users.length > 2 && (
             <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-[9px] sm:text-[10px] font-medium ${textMutedClass}`}>
-              +{users.length - 3}
+              +{users.length - (window.innerWidth < 640 ? 2 : 4)}
             </div>
           )}
 
