@@ -329,7 +329,7 @@ export default function BoardPage() {
         selectedElements={selectedElements}
         onBoardUpdate={setBoard}
         onChat={onChat} emitChat={emitChat}
-        onElementUpsert={upsertElement}
+        onElementUpsert={canEdit ? upsertElement : undefined}
         isOpen={isDockOpen}
         onClose={() => setIsDockOpen(false)}
       />

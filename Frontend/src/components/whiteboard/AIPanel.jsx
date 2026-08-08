@@ -37,21 +37,25 @@ const operationsToElements = (ops) => {
   const elements = [];
   const nodeMap = {};
 
+  let nodeCount = 0;
   // Phase 1: Nodes (rect, ellipse, sticky)
   ops.forEach((op) => {
     if (op.type === "create" || op.type === "add" || (op.object && op.type !== "connect")) {
-      const id = op.id || uid();
-      const x = op.x ?? 100;
-      const y = op.y ?? 100;
+      const elementId = uid();
+      const x = op.x ?? (100 + (nodeCount % 3) * 200);
+      const y = op.y ?? (100 + Math.floor(nodeCount / 3) * 120);
+      nodeCount++;
       const width = op.width ?? 160;
       const height = op.height ?? 80;
       const color = op.color || op.bgColor || "#6D5EF7";
 
-      nodeMap[op.id || id] = { id, x, y, width, height };
+      const nodeData = { id: elementId, x, y, width, height };
+      if (op.id) nodeMap[op.id] = nodeData;
+      nodeMap[elementId] = nodeData;
 
       if (op.object === "sticky") {
         elements.push({
-          id,
+          id: elementId,
           type: "sticky",
           x, y, width, height,
           data: {
@@ -62,7 +66,7 @@ const operationsToElements = (ops) => {
         });
       } else if (op.object === "ellipse" || op.object === "circle") {
         elements.push({
-          id,
+          id: elementId,
           type: "ellipse",
           x, y, width, height,
           data: {
@@ -89,7 +93,7 @@ const operationsToElements = (ops) => {
       } else {
         // rect (default)
         elements.push({
-          id,
+          id: elementId,
           type: "rect",
           x, y, width, height,
           data: {
@@ -210,8 +214,10 @@ const brainstormToElements = (ideas) => {
   return ideas.map((idea, i) => {
     const text = typeof idea === "string"
       ? idea
-      : (idea.title ? `${idea.title}${idea.description ? "\n" + idea.description : ""}` : String(idea));
-    const fill = typeof idea === "object" && idea.color ? idea.color : "#FEF08A";
+      : (idea?.title
+          ? `${idea.title}${idea.description ? "\n" + idea.description : ""}`
+          : (idea?.text || idea?.idea || idea?.description || idea?.content || String(idea)));
+    const fill = typeof idea === "object" && idea?.color ? idea.color : "#FEF08A";
     return {
       id: uid(),
       type: "sticky",
@@ -249,11 +255,12 @@ const Section = ({ title, children, id }) => (
   </div>
 );
 
-const ResultBlock = ({ result, onApplyCanvas }) => {
+const ResultBlock = ({ result, onApplyCanvas, canEdit = true }) => {
   if (!result) return null;
 
   const parsed = parseAIResult(result);
   const elements = extractElements(parsed);
+  const allSticky = elements.length > 0 && elements.every((el) => el.type === "sticky");
 
   if (typeof parsed === "string") {
     return (
@@ -286,8 +293,10 @@ const ResultBlock = ({ result, onApplyCanvas }) => {
             size="sm"
             className="w-full gap-1.5 shadow-xs"
             onClick={() => onApplyCanvas(parsed)}
+            disabled={!canEdit}
+            title={!canEdit ? "Viewers do not have edit permission on this board" : undefined}
           >
-            <MagicWand size={16} /> Draw Flow Diagram on Canvas ({elements.length} items)
+            <MagicWand size={16} /> {allSticky ? `Add Sticky Notes to Canvas (${elements.length} items)` : `Draw Flow Diagram on Canvas (${elements.length} items)`}
           </Button>
         )}
 
@@ -368,7 +377,11 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
   const [improveResult, setImproveResult] = useState(null);
 
   const applyToCanvas = useCallback((data) => {
-    if (!data || !onElementUpsert) return 0;
+    if (!data) return 0;
+    if (!onElementUpsert) {
+      toast.error("Cannot add to canvas: edit handler is missing");
+      return 0;
+    }
     const elements = extractElements(data);
     if (elements.length > 0) {
       elements.forEach((el) => onElementUpsert(el));
@@ -386,7 +399,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
       const rawData = res?.data ?? res;
       const parsedData = parseAIResult(rawData);
       setter(parsedData);
-      if (autoApply) {
+      if (autoApply && onElementUpsert) {
         applyToCanvas(parsedData);
       }
     } catch (e) {
@@ -405,6 +418,8 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
   const runDiagram    = () => wrap(() => aiApi.diagram(boardId, description), setDiagramResult, true);
   const runSummary    = () => wrap(() => aiApi.summary(boardId), setSummaryResult, false);
   const runImprove    = () => wrap(() => aiApi.improve(boardId, { selectedElements, instruction }), setImproveResult, false);
+
+  const canEdit = !!onElementUpsert;
 
   return (
     <div className="flex flex-col h-full">
@@ -435,7 +450,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
                   {busy ? "Thinking…" : "Run"}
                 </Button>
                 <div className="text-[10px] font-mono text-muted-foreground">{selectedElements.length} element(s) selected as context</div>
-                <ResultBlock result={agentResult} onApplyCanvas={applyToCanvas} />
+                <ResultBlock result={agentResult} onApplyCanvas={applyToCanvas} canEdit={canEdit} />
               </Section>
             </TabsContent>
 
@@ -443,7 +458,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
               <Section title="Brainstorm ideas" id="ai-brainstorm-topic">
                 <Input id="ai-brainstorm-topic" placeholder="Topic (e.g. 'growth ideas for a SaaS')" value={topic} onChange={(e) => setTopic(e.target.value)} data-testid="ai-brainstorm-input" />
                 <Button className="w-full" onClick={runBrainstorm} disabled={busy || !topic.trim()} data-testid="ai-brainstorm-run">Generate</Button>
-                <ResultBlock result={brainstormResult} onApplyCanvas={applyToCanvas} />
+                <ResultBlock result={brainstormResult} onApplyCanvas={applyToCanvas} canEdit={canEdit} />
               </Section>
             </TabsContent>
 
@@ -451,7 +466,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
               <Section title="Generate diagram" id="ai-diagram-desc">
                 <Textarea id="ai-diagram-desc" placeholder="Describe the process or system" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} data-testid="ai-diagram-input" />
                 <Button className="w-full" onClick={runDiagram} disabled={busy || !description.trim()} data-testid="ai-diagram-run">Generate</Button>
-                <ResultBlock result={diagramResult} onApplyCanvas={applyToCanvas} />
+                <ResultBlock result={diagramResult} onApplyCanvas={applyToCanvas} canEdit={canEdit} />
               </Section>
             </TabsContent>
 
@@ -459,7 +474,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
               <Section title="Summarize board">
                 <p className="text-xs text-muted-foreground">Get a concise summary of everything on this board.</p>
                 <Button className="w-full" onClick={runSummary} disabled={busy} data-testid="ai-summary-run">Summarize</Button>
-                <ResultBlock result={summaryResult} onApplyCanvas={applyToCanvas} />
+                <ResultBlock result={summaryResult} onApplyCanvas={applyToCanvas} canEdit={canEdit} />
               </Section>
             </TabsContent>
 
@@ -468,7 +483,7 @@ export default function AIPanel({ boardId, selectedElements, onElementUpsert }) 
                 <Input id="ai-improve-instruction" placeholder="Instruction (e.g. 'make it more concise')" value={instruction} onChange={(e) => setInstruction(e.target.value)} data-testid="ai-improve-input" />
                 <div className="text-[10px] font-mono text-muted-foreground">{selectedElements.length} element(s) selected</div>
                 <Button className="w-full" onClick={runImprove} disabled={busy || selectedElements.length === 0 || !instruction.trim()} data-testid="ai-improve-run">Improve</Button>
-                <ResultBlock result={improveResult} onApplyCanvas={applyToCanvas} />
+                <ResultBlock result={improveResult} onApplyCanvas={applyToCanvas} canEdit={canEdit} />
               </Section>
             </TabsContent>
           </div>
