@@ -4,6 +4,7 @@ import { logger } from '../../core/logger/logger.js';
 export const registerCollaborationHandlers = (io) => {
   const collab = io.of('/collaboration');
 
+  // Har nayi connection pe yeh callback chalta hai
   collab.on('connection', (socket) => {
     const { user } = socket; // attached by JWT middleware
     logger.info('Collaboration socket connected', { userId: user._id });
@@ -144,9 +145,10 @@ const handleLeave = (socket, io, boardId, user) => {
   if (!boardId) return;
   const roomName = `board:${boardId}`;
 
-  collabService.removeFromRoom(boardId, socket.id);
+  collabService.removeFromRoom(boardId, socket.id); // remove from memory
   socket.leave(roomName);
 
+//  update user list if anyone leaves the room
   io.to(roomName).emit('user:left', {
     userId: user._id.toString(),
     fullName: user.fullName,

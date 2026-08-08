@@ -57,7 +57,9 @@ export const validateBoardAccess = async (boardId, userId) => {
 
 export const canUserEdit = async (boardId, userId) => {
   try {
+    
     const board = await boardService.getBoardById(boardId, userId);
+  //  toIdStr — MongoDB ObjectId convert into sring for comparison
     const toIdStr = (v) => {
       if (!v) return '';
       if (typeof v === 'string') return v;

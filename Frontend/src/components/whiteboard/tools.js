@@ -14,7 +14,9 @@ export const TOOLS = [
 ];
 
 export const COLORS = [
-  "#111111", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899", "#FFFFFF",
+  "#111111", "#475569", "#EF4444", "#F97316", "#F59E0B",
+  "#10B981", "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6",
+  "#EC4899", "#F43F5E", "#FEF08A", "#BAE6FD", "#FFFFFF",
 ];
 
 export const STROKE_WIDTHS = [1, 2, 4, 6, 10];

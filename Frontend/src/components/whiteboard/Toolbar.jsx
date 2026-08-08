@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Palette } from "@phosphor-icons/react";
 import { TOOLS, COLORS, STROKE_WIDTHS } from "./tools";
 import { cn } from "@/lib/utils";
 
@@ -41,41 +42,77 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center hover:bg-accent"
+              className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center hover:bg-accent group"
               data-testid="tool-color-picker"
-              aria-label="Color"
+              aria-label="Color Picker"
+              title="Click to change color"
             >
-              <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border" style={{ background: color }} />
+              <span
+                className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-black/20 dark:border-white/30 shadow-xs transition-transform group-hover:scale-110"
+                style={{ background: color }}
+              />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" className="w-auto p-2">
-            <div className="grid grid-cols-5 gap-1.5">
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onColorChange(c)}
-                  aria-label={`Color ${c}`}
-                  aria-pressed={color === c}
-                  className={cn("w-7 h-7 rounded-full border-2 cursor-pointer", color === c ? "ring-2 ring-primary ring-offset-1" : "")}
-                  style={{ background: c }}
-                  data-testid={`color-${c.replace("#", "")}`}
-                />
-              ))}
+          <PopoverContent side="top" className="w-auto p-3 space-y-3">
+            <div>
+              <div className="label-mono mb-2 flex items-center justify-between text-[10px]">
+                <span>Presets</span>
+                <span className="font-mono text-[10px] uppercase text-muted-foreground">{color}</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => onColorChange(c)}
+                    aria-label={`Color ${c}`}
+                    aria-pressed={color === c}
+                    className={cn(
+                      "w-7 h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110",
+                      color === c ? "ring-2 ring-primary ring-offset-1 scale-105" : "border-black/10 dark:border-white/20"
+                    )}
+                    style={{ background: c }}
+                    data-testid={`color-${c.replace("#", "")}`}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="label-mono mt-3 mb-1.5">stroke</div>
-            <div className="flex items-center gap-1.5">
-              {STROKE_WIDTHS.map((w) => (
-                <button
-                  key={w}
-                  onClick={() => onStrokeChange(w)}
-                  aria-label={`Stroke width ${w}`}
-                  aria-pressed={strokeWidth === w}
-                  className={cn("h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent cursor-pointer", strokeWidth === w && "bg-primary/10 ring-1 ring-primary")}
-                  data-testid={`stroke-${w}`}
-                >
-                  <span className="rounded-full bg-foreground" style={{ width: w * 2, height: w * 2 }} />
-                </button>
-              ))}
+
+            {/* Custom Color Input */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <label htmlFor="custom-color-picker" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                <Palette size={16} />
+                <span>Custom color</span>
+              </label>
+              <input
+                id="custom-color-picker"
+                type="color"
+                value={color}
+                onChange={(e) => onColorChange(e.target.value)}
+                className="w-7 h-7 rounded-lg border border-border cursor-pointer bg-transparent p-0 overflow-hidden shrink-0 ml-auto"
+                title="Pick custom color"
+                data-testid="custom-color-input"
+              />
+            </div>
+
+            <div className="pt-2 border-t">
+              <div className="label-mono mb-2 text-[10px]">Stroke thickness</div>
+              <div className="flex items-center justify-between gap-1">
+                {STROKE_WIDTHS.map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => onStrokeChange(w)}
+                    aria-label={`Stroke width ${w}`}
+                    aria-pressed={strokeWidth === w}
+                    className={cn(
+                      "h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent cursor-pointer transition-colors",
+                      strokeWidth === w && "bg-primary/10 ring-1 ring-primary"
+                    )}
+                    data-testid={`stroke-${w}`}
+                  >
+                    <span className="rounded-full bg-foreground" style={{ width: Math.max(3, w * 1.5), height: Math.max(3, w * 1.5) }} />
+                  </button>
+                ))}
+              </div>
             </div>
           </PopoverContent>
         </Popover>
@@ -83,3 +120,4 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
     </TooltipProvider>
   );
 }
+
