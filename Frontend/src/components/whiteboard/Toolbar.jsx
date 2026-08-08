@@ -1,10 +1,21 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Palette } from "@phosphor-icons/react";
+import { Palette, BoundingBox, Trash } from "@phosphor-icons/react";
 import { TOOLS, COLORS, STROKE_WIDTHS } from "./tools";
 import { cn } from "@/lib/utils";
 
-export default function Toolbar({ activeTool, onSelectTool, color, onColorChange, strokeWidth, onStrokeChange, canEdit }) {
+export default function Toolbar({
+  activeTool,
+  onSelectTool,
+  color,
+  onColorChange,
+  strokeWidth,
+  onStrokeChange,
+  canEdit,
+  onSelectAll,
+  onClearAll,
+  elementCount = 0,
+}) {
   return (
     <TooltipProvider delayDuration={200}>
       <div
@@ -38,6 +49,51 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
               </Tooltip>
             );
           })}
+        </div>
+
+        <div className="w-px h-5 sm:h-6 bg-border mx-1 shrink-0" />
+
+        {/* Action Buttons: Select All & Clear All */}
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                disabled={elementCount === 0}
+                onClick={onSelectAll}
+                data-testid="tool-select-all"
+                className={cn(
+                  "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10 active:scale-95 text-foreground",
+                  elementCount === 0 && "opacity-40 cursor-not-allowed"
+                )}
+                aria-label="Select All Elements"
+              >
+                <BoundingBox size={18} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="text-xs">Select All · <kbd className="font-mono">⌘A</kbd></span>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                disabled={!canEdit || elementCount === 0}
+                onClick={onClearAll}
+                data-testid="tool-clear-all"
+                className={cn(
+                  "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-destructive/10 text-destructive active:scale-95",
+                  (!canEdit || elementCount === 0) && "opacity-40 cursor-not-allowed"
+                )}
+                aria-label="Clear All Elements"
+              >
+                <Trash size={18} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="text-xs">Clear All Elements</span>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="w-px h-5 sm:h-6 bg-border mx-1 shrink-0" />

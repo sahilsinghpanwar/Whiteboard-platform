@@ -351,6 +351,24 @@ export default function BoardPage() {
     emitCollab("element:unlock", { boardId, elementId });
   }, [boardId, emitCollab]);
 
+  const handleSelectAll = useCallback(() => {
+    if (elements.length === 0) return;
+    setSelectedIds(elements.map((el) => el.id));
+    setActiveTool("select");
+    toast.info(`Selected all ${elements.length} elements`);
+  }, [elements]);
+
+  const handleClearAll = useCallback(() => {
+    if (!canEdit || elements.length === 0) return;
+    if (window.confirm(`Are you sure you want to clear all ${elements.length} elements from this board?`)) {
+      const allIds = elements.map((el) => el.id);
+      allIds.forEach((id) => handleUnlockElement?.(id));
+      deleteElements(allIds);
+      setSelectedIds([]);
+      toast.success("All elements cleared from board");
+    }
+  }, [canEdit, elements, deleteElements, handleUnlockElement]);
+
   const selectedElements = useMemo(
     () => elements.filter((e) => selectedIds.includes(e.id)),
     [elements, selectedIds]
@@ -368,8 +386,8 @@ export default function BoardPage() {
 
       <Canvas
         elements={elements}
-        onElementUpsert={upsertElement}
-        onElementsDelete={deleteElements}
+        onElementUpsert={canEdit ? upsertElement : () => {}}
+        onElementsDelete={canEdit ? deleteElements : () => {}}
         onCursorMove={onCursorMove}
         activeTool={activeTool} color={color} strokeWidth={strokeWidth} canEdit={canEdit}
         selectedIds={selectedIds} setSelectedIds={setSelectedIds}
@@ -396,6 +414,9 @@ export default function BoardPage() {
         color={color} onColorChange={setColor}
         strokeWidth={strokeWidth} onStrokeChange={setStrokeWidth}
         canEdit={canEdit}
+        onSelectAll={handleSelectAll}
+        onClearAll={handleClearAll}
+        elementCount={elements.length}
       />
 
       {isDockOpen && (
