@@ -82,14 +82,22 @@ export default function BoardPage() {
     })();
   }, [boardId, navigate]);
 
+  const [lockedElements, setLockedElements] = useState({}); // { [elementId]: { userId, fullName, color } }
+
   // Socket listeners
   useEffect(() => {
-    const off1 = onCollab("room:users", ({ users }) => setActiveUsers(users || []));
+    setLockedElements({});
+    const off1 = onCollab("room:users", ({ users, locks }) => {
+      setActiveUsers(users || []);
+      if (locks) setLockedElements(locks);
+    });
     const off2 = onCollab("user:joined", ({ user: u }) => {
       setActiveUsers((prev) => (prev.some((p) => String(p.userId) === String(u.userId)) ? prev : [...prev, u]));
       toast.success(`${u.fullName || "Someone"} joined`);
     });
     const off3 = onCollab("user:left", ({ users }) => setActiveUsers(users || []));
+
+    // Element updates & deletes
     const off4 = onCollab("element:updated", ({ element }) => {
       setElements((prev) => {
         const idx = prev.findIndex((e) => e.id === element.id);
@@ -98,17 +106,77 @@ export default function BoardPage() {
         return next;
       });
     });
+
     const off5 = onCollab("element:deleted", ({ elementIds }) => {
       setElements((prev) => prev.filter((e) => !elementIds.includes(e.id)));
     });
-    const off6 = onCollab("canvas:updated", ({ canvas }) => setElements(canvas?.elements || []));
+
+    // 1. REJECTED: Silent revert to last known server state + console log
+    const offRejected = onCollab("element:rejected", ({ elementId, reason, lastKnownState, element }) => {
+      console.warn("element rejected", elementId, reason);
+      const revertedState = lastKnownState || element;
+      if (revertedState) {
+        setElements((prev) => {
+          const idx = prev.findIndex((e) => e.id === elementId);
+          if (idx === -1) return prev;
+          const next = [...prev];
+          next[idx] = revertedState;
+          return next;
+        });
+      }
+    });
+
+    // 2. LOCKED: Remote user started editing an element
+    const offLocked = onCollab("element:locked", ({ elementId, lockedBy }) => {
+      if (!elementId) return;
+      setLockedElements((prev) => ({
+        ...prev,
+        [elementId]: lockedBy || { userId: "unknown", fullName: "Someone" },
+      }));
+    });
+
+    // 3. UNLOCKED: Remote user released an element
+    const offUnlocked = onCollab("element:unlocked", ({ elementId }) => {
+      if (!elementId) return;
+      setLockedElements((prev) => {
+        const next = { ...prev };
+        delete next[elementId];
+        return next;
+      });
+    });
+
+    // 4. UNLOCKED ALL: Remote user disconnected, release all their locks
+    const offUnlockedAll = onCollab("elements:unlocked:all", ({ userId: uidToUnlock }) => {
+      if (!uidToUnlock) return;
+      setLockedElements((prev) => {
+        const next = {};
+        for (const [eId, lock] of Object.entries(prev)) {
+          if (String(lock?.userId) !== String(uidToUnlock)) {
+            next[eId] = lock;
+          }
+        }
+        return next;
+      });
+    });
+
+    // 5. LOCK FAILED: Current user tried to edit an already-locked element
+    const offLockFailed = onCollab("element:lock:failed", ({ elementId }) => {
+      setSelectedIds((prev) => prev.filter((id) => id !== elementId));
+      toast.error("Already being edited by another user");
+    });
+
     const off7 = onCollab("cursor:moved", ({ userId: uid2, fullName, x, y }) => {
       setCursors((prev) => ({ ...prev, [uid2]: { userId: uid2, fullName, x, y, t: Date.now() } }));
     });
     const off8 = onCollab("board:updated", ({ board: b }) => setBoard(b));
     const off9 = onCollab("error", ({ message }) => toast.error(message));
-    return () => { off1(); off2(); off3(); off4(); off5(); off6(); off7(); off8(); off9(); };
-  }, [onCollab]);
+
+    return () => {
+      off1(); off2(); off3(); off4(); off5();
+      offRejected(); offLocked(); offUnlocked(); offUnlockedAll(); offLockFailed();
+      off7(); off8(); off9();
+    };
+  }, [onCollab, boardId]);
 
   // Prune stale cursors
   useEffect(() => {
@@ -273,6 +341,16 @@ export default function BoardPage() {
     } catch (e) { toast.error(e?.message || "Export failed"); }
   };
 
+  const handleLockElement = useCallback((elementId) => {
+    if (!elementId || !canEdit) return;
+    emitCollab("element:lock", { boardId, elementId });
+  }, [boardId, canEdit, emitCollab]);
+
+  const handleUnlockElement = useCallback((elementId) => {
+    if (!elementId) return;
+    emitCollab("element:unlock", { boardId, elementId });
+  }, [boardId, emitCollab]);
+
   const selectedElements = useMemo(
     () => elements.filter((e) => selectedIds.includes(e.id)),
     [elements, selectedIds]
@@ -295,6 +373,10 @@ export default function BoardPage() {
         onCursorMove={onCursorMove}
         activeTool={activeTool} color={color} strokeWidth={strokeWidth} canEdit={canEdit}
         selectedIds={selectedIds} setSelectedIds={setSelectedIds}
+        lockedElements={lockedElements}
+        onLockElement={handleLockElement}
+        onUnlockElement={handleUnlockElement}
+        currentUserId={userId}
         width={w} height={h}
         scale={scale} setScale={setScale}
         stagePos={stagePos} setStagePos={setStagePos}

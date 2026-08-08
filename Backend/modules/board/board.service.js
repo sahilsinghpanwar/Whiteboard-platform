@@ -1,6 +1,7 @@
 import * as boardRepo from './board.repository.js';
 import * as userRepo from '../user/user.repository.js';
 import { ApiError } from '../../core/utils/ApiError.js';
+import { invalidatePermissionCache } from '../collaboration/collaboration.service.js';
 
 const toIdStr = (val) => {
   if (!val) return '';
@@ -136,10 +137,12 @@ export const inviteMember = async (boardId, requesterId, { email, role }) => {
   );
   if (alreadyMember) {
     await boardRepo.updateMemberRole(boardId, invitee._id, role);
+    invalidatePermissionCache(boardId);
     return boardRepo.findByIdWithMembers(boardId);
   }
 
   await boardRepo.addMember(boardId, invitee._id, role);
+  invalidatePermissionCache(boardId);
   return boardRepo.findByIdWithMembers(boardId);
 };
 
@@ -159,6 +162,7 @@ export const updateMemberRole = async (boardId, requesterId, memberId, role) => 
   }
 
   await boardRepo.updateMemberRole(boardId, memberId, role);
+  invalidatePermissionCache(boardId);
   return boardRepo.findByIdWithMembers(boardId);
 };
 
@@ -178,6 +182,7 @@ export const acceptInvitation = async (boardId, userId) => {
   }
   
   await boardRepo.updateMemberStatus(boardId, userId, 'accepted');
+  invalidatePermissionCache(boardId);
   return boardRepo.findByIdWithMembers(boardId);
 };
 
@@ -193,6 +198,7 @@ export const declineInvitation = async (boardId, userId) => {
   }
   
   await boardRepo.removeMember(boardId, userId);
+  invalidatePermissionCache(boardId);
   return { message: 'Invitation declined' };
 };
 
@@ -216,6 +222,7 @@ export const removeMember = async (boardId, requesterId, targetUserId) => {
   }
 
   await boardRepo.removeMember(boardId, targetUserId);
+  invalidatePermissionCache(boardId);
   return boardRepo.findByIdWithMembers(boardId);
 };
 
