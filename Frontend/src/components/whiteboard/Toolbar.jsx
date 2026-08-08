@@ -53,10 +53,10 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
               />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" className="w-auto p-3 space-y-3">
+          <PopoverContent side="top" className="w-[210px] p-3 space-y-3">
             <div>
               <div className="label-mono mb-2 flex items-center justify-between text-[10px]">
-                <span>Presets</span>
+                <span>Presets (20)</span>
                 <span className="font-mono text-[10px] uppercase text-muted-foreground">{color}</span>
               </div>
               <div className="grid grid-cols-5 gap-1.5">
@@ -67,7 +67,7 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
                     aria-label={`Color ${c}`}
                     aria-pressed={color === c}
                     className={cn(
-                      "w-7 h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110",
+                      "w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110",
                       color === c ? "ring-2 ring-primary ring-offset-1 scale-105" : "border-black/10 dark:border-white/20"
                     )}
                     style={{ background: c }}
@@ -77,21 +77,32 @@ export default function Toolbar({ activeTool, onSelectTool, color, onColorChange
               </div>
             </div>
 
-            {/* Custom Color Input */}
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <label htmlFor="custom-color-picker" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+            {/* Custom Color Input & HEX Box */}
+            <div className="flex items-center justify-between gap-1.5 pt-2 border-t">
+              <label htmlFor="custom-color-picker" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground shrink-0">
                 <Palette size={16} />
-                <span>Custom color</span>
+                <span>Custom</span>
               </label>
-              <input
-                id="custom-color-picker"
-                type="color"
-                value={color}
-                onChange={(e) => onColorChange(e.target.value)}
-                className="w-7 h-7 rounded-lg border border-border cursor-pointer bg-transparent p-0 overflow-hidden shrink-0 ml-auto"
-                title="Pick custom color"
-                data-testid="custom-color-input"
-              />
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="w-18 h-7 px-1 text-[11px] font-mono rounded border border-border bg-background outline-none focus:ring-1 focus:ring-primary uppercase text-center"
+                  placeholder="#000000"
+                  maxLength={7}
+                  data-testid="hex-color-input"
+                />
+                <input
+                  id="custom-color-picker"
+                  type="color"
+                  value={color.startsWith("#") && color.length === 7 ? color : "#111111"}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="w-7 h-7 rounded-lg border border-border cursor-pointer bg-transparent p-0 overflow-hidden shrink-0"
+                  title="Pick custom color"
+                  data-testid="custom-color-input"
+                />
+              </div>
             </div>
 
             <div className="pt-2 border-t">
