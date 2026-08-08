@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Image as KImage, Transformer } from "react-konva";
 import useImage from "use-image";
+import { toast } from "sonner";
 import { uid } from "@/lib/helpers";
 
 /**
@@ -59,6 +60,10 @@ export default function Canvas({
   canEdit = true,
   selectedIds = [],
   setSelectedIds,
+  lockedElements = {},
+  onLockElement,
+  onUnlockElement,
+  currentUserId,
   width,
   height,
   scale: propScale,
@@ -92,21 +97,27 @@ export default function Canvas({
     trRef.current.getLayer()?.batchDraw();
   }, [selectedIds, elements]);
 
-  // Keyboard shortcut: Delete / Backspace
+  // Keyboard shortcuts: Escape (unlock) / Delete / Backspace
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!canEdit || editingText) return;
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
+      if (e.key === "Escape" && selectedIds.length > 0) {
+        selectedIds.forEach((id) => onUnlockElement?.(id));
+        setSelectedIds([]);
+        return;
+      }
+      if (!canEdit || editingText) return;
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
         e.preventDefault();
+        selectedIds.forEach((id) => onUnlockElement?.(id));
         onElementsDelete(selectedIds);
         setSelectedIds([]);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedIds, canEdit, onElementsDelete, setSelectedIds, editingText]);
+  }, [selectedIds, canEdit, onElementsDelete, setSelectedIds, editingText, onUnlockElement]);
 
   // Convert canvas screen pointer to stage coordinates
   const getStagePointer = useCallback(() => {
@@ -128,16 +139,35 @@ export default function Canvas({
     [onElementUpsert]
   );
 
-  // Handle shape selection
+  // Handle shape selection & lock request
   const handleShapeSelect = (id, e) => {
     if (activeTool !== "select") return;
     e.cancelBubble = true;
+
+    // Check if locked by another user
+    const lock = lockedElements[id];
+    if (lock && String(lock.userId) !== String(currentUserId)) {
+      toast.error("Already being edited by another user");
+      return;
+    }
+
     const additive = e.evt.shiftKey || e.evt.metaKey;
     if (additive) {
-      setSelectedIds((prev) =>
-        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-      );
+      setSelectedIds((prev) => {
+        const exists = prev.includes(id);
+        if (exists) {
+          onUnlockElement?.(id);
+          return prev.filter((x) => x !== id);
+        } else {
+          onLockElement?.(id);
+          return [...prev, id];
+        }
+      });
     } else {
+      selectedIds.forEach((prevId) => {
+        if (prevId !== id) onUnlockElement?.(prevId);
+      });
+      onLockElement?.(id);
       setSelectedIds([id]);
     }
   };
@@ -155,10 +185,13 @@ export default function Canvas({
       return;
     }
 
-    // Select Tool - Clear selection if clicking empty canvas
+    // Select Tool - Clear selection & unlock if clicking empty canvas
     const clickedEmpty = e.target === e.target.getStage();
     if (activeTool === "select") {
-      if (clickedEmpty) setSelectedIds([]);
+      if (clickedEmpty) {
+        selectedIds.forEach((id) => onUnlockElement?.(id));
+        setSelectedIds([]);
+      }
       return;
     }
 
@@ -207,6 +240,7 @@ export default function Canvas({
       };
       onElementUpsert(el);
       setSelectedIds([id]);
+      onLockElement?.(id);
     } else if (activeTool === "sticky") {
       const el = {
         id,
@@ -219,6 +253,7 @@ export default function Canvas({
       };
       onElementUpsert(el);
       setSelectedIds([id]);
+      onLockElement?.(id);
     }
   };
 
@@ -317,6 +352,11 @@ export default function Canvas({
   // Text Overlay Editing
   const openTextEditor = (el) => {
     if (!canEdit || (el.type !== "text" && el.type !== "sticky")) return;
+    const lock = lockedElements[el.id];
+    if (lock && String(lock.userId) !== String(currentUserId)) {
+      toast.error("Already being edited by another user");
+      return;
+    }
     const stage = stageRef.current;
     if (!stage) return;
     const box = stage.container().getBoundingClientRect();
@@ -340,9 +380,61 @@ export default function Canvas({
     setEditingText(null);
   };
 
+  // Render Visual Lock Indicator Overlay for Remote Users
+  const renderLockedOverlay = (el) => {
+    const lock = lockedElements[el.id];
+    if (!lock || String(lock.userId) === String(currentUserId)) return null;
+
+    const userColor = lock.color || "#EF4444";
+    const labelText = `🔒 ${lock.fullName || "Editing..."}`;
+    const x = el.x || 0;
+    const y = el.y || 0;
+    const w = el.width || 100;
+    const h = el.height || 60;
+    const labelWidth = Math.max(60, labelText.length * 7 + 16);
+
+    return (
+      <Group key={`lock-overlay-${el.id}`} listening={false}>
+        <Rect
+          x={x - 3}
+          y={y - 3}
+          width={w + 6}
+          height={h + 6}
+          stroke={userColor}
+          strokeWidth={2}
+          dash={[4, 4]}
+          cornerRadius={6}
+          listening={false}
+        />
+        <Group x={x} y={Math.max(0, y - 24)} listening={false}>
+          <Rect
+            width={labelWidth}
+            height={20}
+            fill={userColor}
+            cornerRadius={4}
+            shadowColor="black"
+            shadowBlur={4}
+            shadowOpacity={0.2}
+            listening={false}
+          />
+          <Text
+            text={labelText}
+            fontSize={11}
+            fill="#FFFFFF"
+            fontFamily="Outfit"
+            padding={4}
+            listening={false}
+          />
+        </Group>
+      </Group>
+    );
+  };
+
   // Render Individual Shape
   const renderShapeElement = (el) => {
-    const isDraggable = canEdit && activeTool === "select" && el.id !== drawing?.id;
+    const lock = lockedElements[el.id];
+    const isLockedByOther = lock && String(lock.userId) !== String(currentUserId);
+    const isDraggable = canEdit && activeTool === "select" && el.id !== drawing?.id && !isLockedByOther;
 
     // Common props for standard shapes
     const commonProps = {
@@ -356,8 +448,10 @@ export default function Canvas({
       onTap: (e) => handleShapeSelect(el.id, e),
       onDblClick: () => openTextEditor(el),
       onDblTap: () => openTextEditor(el),
+      onDragStart: () => onLockElement?.(el.id),
       onDragEnd: (e) => {
         handleShapeChange(el, { x: e.target.x(), y: e.target.y() });
+        onUnlockElement?.(el.id);
       },
       onTransformEnd: (e) => {
         const node = e.target;
@@ -372,6 +466,7 @@ export default function Canvas({
           height: Math.max(5, Math.abs((el.height || 100) * sy)),
           rotation: node.rotation(),
         });
+        onUnlockElement?.(el.id);
       },
     };
 
@@ -410,6 +505,7 @@ export default function Canvas({
             draggable={isDraggable}
             onClick={(e) => handleShapeSelect(el.id, e)}
             onTap={(e) => handleShapeSelect(el.id, e)}
+            onDragStart={() => onLockElement?.(el.id)}
             onDragEnd={(e) => {
               const cx = e.target.x();
               const cy = e.target.y();
@@ -417,6 +513,7 @@ export default function Canvas({
                 x: cx - radiusX,
                 y: cy - radiusY,
               });
+              onUnlockElement?.(el.id);
             }}
             onTransformEnd={(e) => {
               const node = e.target;
@@ -435,6 +532,7 @@ export default function Canvas({
                 height: newH,
                 rotation: node.rotation(),
               });
+              onUnlockElement?.(el.id);
             }}
           />
         );
@@ -545,6 +643,7 @@ export default function Canvas({
             .slice()
             .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
             .map((el) => renderShapeElement(el))}
+          {elements.map((el) => renderLockedOverlay(el))}
           <Transformer
             ref={trRef}
             rotateEnabled
