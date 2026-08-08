@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Palette, BoundingBox, Trash } from "@phosphor-icons/react";
+import { Palette, BoundingBox, Trash, Broom } from "@phosphor-icons/react";
 import { TOOLS, COLORS, STROKE_WIDTHS } from "./tools";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ export default function Toolbar({
   canEdit,
   onSelectAll,
   onClearAll,
+  onDeleteSelected,
+  selectedCount = 0,
   elementCount = 0,
 }) {
   return (
@@ -53,7 +55,7 @@ export default function Toolbar({
 
         <div className="w-px h-5 sm:h-6 bg-border mx-1 shrink-0" />
 
-        {/* Action Buttons: Select All & Clear All */}
+        {/* Action Buttons: Select All, Delete Selected, & Clear Board */}
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -75,6 +77,28 @@ export default function Toolbar({
             </TooltipContent>
           </Tooltip>
 
+          {selectedCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  disabled={!canEdit}
+                  onClick={onDeleteSelected}
+                  data-testid="tool-delete-selected"
+                  className={cn(
+                    "h-8 sm:h-10 px-2 sm:px-2.5 shrink-0 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground active:scale-95 text-xs font-medium"
+                  )}
+                  aria-label={`Delete ${selectedCount} selected element(s)`}
+                >
+                  <Trash size={16} weight="bold" />
+                  <span className="text-xs font-semibold">{selectedCount}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className="text-xs">Delete Selected ({selectedCount}) · <kbd className="font-mono">Del</kbd></span>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -82,16 +106,16 @@ export default function Toolbar({
                 onClick={onClearAll}
                 data-testid="tool-clear-all"
                 className={cn(
-                  "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-destructive/10 text-destructive active:scale-95",
+                  "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-destructive/10 text-muted-foreground hover:text-destructive active:scale-95",
                   (!canEdit || elementCount === 0) && "opacity-40 cursor-not-allowed"
                 )}
-                aria-label="Clear All Elements"
+                aria-label="Clear Board"
               >
-                <Trash size={18} />
+                <Broom size={18} />
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              <span className="text-xs">Clear All Elements</span>
+              <span className="text-xs">Clear Entire Board</span>
             </TooltipContent>
           </Tooltip>
         </div>

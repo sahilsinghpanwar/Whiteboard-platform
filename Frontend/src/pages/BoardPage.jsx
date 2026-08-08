@@ -369,6 +369,15 @@ export default function BoardPage() {
     }
   }, [canEdit, elements, deleteElements, handleUnlockElement]);
 
+  const handleDeleteSelected = useCallback(() => {
+    if (!canEdit || selectedIds.length === 0) return;
+    const idsToDelete = [...selectedIds];
+    idsToDelete.forEach((id) => handleUnlockElement?.(id));
+    deleteElements(idsToDelete);
+    setSelectedIds([]);
+    toast.success(`Deleted ${idsToDelete.length} selected element${idsToDelete.length > 1 ? "s" : ""}`);
+  }, [canEdit, selectedIds, deleteElements, handleUnlockElement]);
+
   const selectedElements = useMemo(
     () => elements.filter((e) => selectedIds.includes(e.id)),
     [elements, selectedIds]
@@ -416,6 +425,8 @@ export default function BoardPage() {
         canEdit={canEdit}
         onSelectAll={handleSelectAll}
         onClearAll={handleClearAll}
+        onDeleteSelected={handleDeleteSelected}
+        selectedCount={selectedIds.length}
         elementCount={elements.length}
       />
 
