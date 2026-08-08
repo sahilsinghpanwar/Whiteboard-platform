@@ -11,6 +11,7 @@ import Toolbar from "@/components/whiteboard/Toolbar";
 import TopBar from "@/components/whiteboard/TopBar";
 import RightDock from "@/components/whiteboard/RightDock";
 import PresenceCursors from "@/components/whiteboard/PresenceCursors";
+import { useTheme } from "@/context/ThemeContext";
 import { SHORTCUT_MAP } from "@/components/whiteboard/tools";
 import { uid } from "@/lib/helpers";
 
@@ -28,6 +29,7 @@ export default function BoardPage() {
   const { boardId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const { w, h } = useWindowSize();
 
   const [board, setBoard] = useState(null);
@@ -36,12 +38,26 @@ export default function BoardPage() {
   const [activeUsers, setActiveUsers] = useState([]);
   const [cursors, setCursors] = useState({}); // { userId: {x,y, fullName} }
   const [activeTool, setActiveTool] = useState("select");
-  const [color, setColor] = useState("#111111");
+  const [color, setColor] = useState(() => (theme === "dark" ? "#FFFFFF" : "#111111"));
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [saving, setSaving] = useState(false);
   const [scale, setScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isDockOpen, setIsDockOpen] = useState(() => window.innerWidth >= 1024);
+
+  const prevThemeRef = useRef(theme);
+
+  // Sync tool color when theme toggles
+  useEffect(() => {
+    if (prevThemeRef.current !== theme) {
+      if (theme === "dark" && (color === "#111111" || color === "#000000")) {
+        setColor("#FFFFFF");
+      } else if (theme === "light" && (color === "#FFFFFF" || color === "#ffffff")) {
+        setColor("#111111");
+      }
+      prevThemeRef.current = theme;
+    }
+  }, [theme, color]);
 
   const userId = user?._id || user?.id;
   const ownerId = board?.owner?._id || board?.owner;
