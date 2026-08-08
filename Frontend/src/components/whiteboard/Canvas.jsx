@@ -362,6 +362,7 @@ export default function Canvas({
     const box = stage.container().getBoundingClientRect();
     const x = box.left + el.x * scale + stagePos.x;
     const y = box.top + el.y * scale + stagePos.y;
+    onLockElement?.(el.id);
     setEditingText({
       id: el.id,
       x,
@@ -377,6 +378,7 @@ export default function Canvas({
     if (!editingText) return;
     const el = elements.find((x) => x.id === editingText.id);
     if (el) onElementUpsert({ ...el, data: { ...el.data, text: editingText.value } });
+    onUnlockElement?.(editingText.id);
     setEditingText(null);
   };
 
@@ -387,10 +389,34 @@ export default function Canvas({
 
     const userColor = lock.color || "#EF4444";
     const labelText = `🔒 ${lock.fullName || "Editing..."}`;
-    const x = el.x || 0;
-    const y = el.y || 0;
-    const w = el.width || 100;
-    const h = el.height || 60;
+    let x = el.x || 0;
+    let y = el.y || 0;
+    let w = el.width || 0;
+    let h = el.height || 0;
+
+    if ((!w || !h) && (el.type === "pen" || el.type === "line" || el.type === "arrow")) {
+      const pts = el.data?.points || [];
+      if (pts.length >= 2) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (let i = 0; i < pts.length; i += 2) {
+          const px = pts[i];
+          const py = pts[i + 1];
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+        }
+        if (minX !== Infinity) {
+          x = (el.x || 0) + minX;
+          y = (el.y || 0) + minY;
+          w = Math.max(10, maxX - minX);
+          h = Math.max(10, maxY - minY);
+        }
+      }
+    }
+
+    if (!w) w = 100;
+    if (!h) h = 60;
     const labelWidth = Math.max(60, labelText.length * 7 + 16);
 
     return (

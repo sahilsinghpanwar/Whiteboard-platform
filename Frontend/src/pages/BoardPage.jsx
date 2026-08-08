@@ -86,7 +86,11 @@ export default function BoardPage() {
 
   // Socket listeners
   useEffect(() => {
-    const off1 = onCollab("room:users", ({ users }) => setActiveUsers(users || []));
+    setLockedElements({});
+    const off1 = onCollab("room:users", ({ users, locks }) => {
+      setActiveUsers(users || []);
+      if (locks) setLockedElements(locks);
+    });
     const off2 = onCollab("user:joined", ({ user: u }) => {
       setActiveUsers((prev) => (prev.some((p) => String(p.userId) === String(u.userId)) ? prev : [...prev, u]));
       toast.success(`${u.fullName || "Someone"} joined`);
@@ -172,7 +176,7 @@ export default function BoardPage() {
       offRejected(); offLocked(); offUnlocked(); offUnlockedAll(); offLockFailed();
       off7(); off8(); off9();
     };
-  }, [onCollab]);
+  }, [onCollab, boardId]);
 
   // Prune stale cursors
   useEffect(() => {

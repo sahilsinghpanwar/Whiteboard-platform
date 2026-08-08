@@ -159,9 +159,14 @@ export const isNewerUpdate = (boardId, elementId, incomingTimestamp) => {
   const key = `${boardId}:${elementId}`;
   const lastTimestamp = elementVersionMap.get(key) || 0;
 
-  if (incomingTimestamp <= lastTimestamp) return false;
+  const now = Date.now();
+  const parsed = Number(incomingTimestamp);
+  const validTs = isNaN(parsed) || parsed <= 0 ? now : parsed;
+  const clampedTs = Math.min(validTs, now);
 
-  elementVersionMap.set(key, incomingTimestamp);
+  if (clampedTs <= lastTimestamp) return false;
+
+  elementVersionMap.set(key, clampedTs);
   return true;
 };
 
@@ -179,33 +184,69 @@ export const clearElementVersion = (boardId, elementIds) => {
 // Jab User A shape select/drag kare toh lock karo
 // Tab tak User B us shape ko touch nahi kar sakta
 // User A drag end kare ya disconnect ho → lock release
-export const lockElement = (boardId, elementId, userId) => {
+export const lockElement = (boardId, elementId, lockData) => {
   const key = `${boardId}:${elementId}`;
   const currentLock = elementLocks.get(key);
 
-  // Koi aur pehle se lock kar chuka hai
-  if (currentLock && currentLock !== userId) return false;
+  const incomingUserId = typeof lockData === "object" && lockData !== null ? lockData.userId : lockData;
+  const currentUserId = typeof currentLock === "object" && currentLock !== null ? currentLock.userId : currentLock;
 
-  elementLocks.set(key, userId);
+  // Koi aur pehle se lock kar chuka hai
+  if (currentLock && currentUserId !== incomingUserId) return false;
+
+  elementLocks.set(key, lockData);
   return true;
 };
 
-export const unlockElement = (boardId, elementId, userId) => {
+export const unlockElement = (boardId, elementId, userId, socketId) => {
   const key = `${boardId}:${elementId}`;
-  if (elementLocks.get(key) === userId) elementLocks.delete(key);
+  const currentLock = elementLocks.get(key);
+  if (!currentLock) return;
+
+  const currentSocketId = typeof currentLock === "object" && currentLock !== null ? currentLock.socketId : null;
+  const currentUserId = typeof currentLock === "object" && currentLock !== null ? currentLock.userId : currentLock;
+
+  if (socketId && currentSocketId) {
+    if (currentSocketId === socketId) elementLocks.delete(key);
+  } else if (currentUserId === userId) {
+    elementLocks.delete(key);
+  }
 };
 
 export const getElementLock = (boardId, elementId) =>
   elementLocks.get(`${boardId}:${elementId}`) || null;
 
-// User disconnect / leave karne pe uske saare locks release karo
-// Warna board ke elements permanently locked reh sakte hain
-export const releaseAllLocks = (boardId, userId) => {
-  for (const [key, lockedBy] of elementLocks.entries()) {
-    if (key.startsWith(`${boardId}:`) && lockedBy === userId) {
-      elementLocks.delete(key);
+export const getBoardLocks = (boardId) => {
+  const prefix = `${boardId}:`;
+  const locks = {};
+  for (const [key, lockData] of elementLocks.entries()) {
+    if (key.startsWith(prefix)) {
+      const elementId = key.slice(prefix.length);
+      locks[elementId] = typeof lockData === "object" && lockData !== null ? lockData : { userId: lockData };
     }
   }
+  return locks;
+};
+
+// User disconnect / leave karne pe us socket ke locks release karo
+export const releaseAllLocks = (boardId, userId, socketId) => {
+  let count = 0;
+  for (const [key, lockData] of elementLocks.entries()) {
+    if (!key.startsWith(`${boardId}:`)) continue;
+    const currentSocketId = typeof lockData === "object" && lockData !== null ? lockData.socketId : null;
+    const currentUserId = typeof lockData === "object" && lockData !== null ? lockData.userId : lockData;
+
+    if (socketId && currentSocketId) {
+      if (currentSocketId === socketId) {
+        elementLocks.delete(key);
+        count++;
+      }
+    } else if (currentUserId === userId) {
+      elementLocks.delete(key);
+      count++;
+    }
+  }
+  return count;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,6 +262,15 @@ export const persistElementUpsert = async (boardId, userId, element) => {
       elementId: element?.id,
       error: err.message,
     });
+  }
+};
+
+export const getElementById = async (boardId, elementId) => {
+  try {
+    const board = await boardService.getBoardById(boardId);
+    return board?.canvas?.elements?.find((e) => e.id === elementId) || null;
+  } catch {
+    return null;
   }
 };
 

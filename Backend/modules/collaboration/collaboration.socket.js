@@ -27,9 +27,10 @@ export const registerCollaborationHandlers = (io) => {
         await socket.join(roomName);
         collabService.addToRoom(boardId, socket.id, user);
 
-        // Naye user ko current active users ki list bhejo
+        // Naye user ko current active users ki list aur board lock snapshot bhejo
         socket.emit("room:users", {
           users: collabService.getRoomUsers(boardId),
+          locks: collabService.getBoardLocks(boardId),
         });
 
         // Baaki sabko batao ki koi join hua
@@ -69,6 +70,19 @@ export const registerCollaborationHandlers = (io) => {
           return;
         }
 
+        // Lock Check — agar element kisi aur user ne lock kar rakha hai toh update reject karo
+        const currentLock = collabService.getElementLock(boardId, element.id);
+        const lockUserId = typeof currentLock === "object" && currentLock !== null ? currentLock.userId : currentLock;
+        if (lockUserId && String(lockUserId) !== String(user._id)) {
+          const lastKnownState = await collabService.getElementById(boardId, element.id);
+          socket.emit("element:rejected", {
+            elementId: element.id,
+            reason: "element_locked",
+            lastKnownState,
+          });
+          return;
+        }
+
         // LWW Check — purana update hai toh reject karo
         const timestamp = element.updatedAt || Date.now();
         const isNewer = collabService.isNewerUpdate(
@@ -78,10 +92,12 @@ export const registerCollaborationHandlers = (io) => {
         );
 
         if (!isNewer) {
+          const lastKnownState = await collabService.getElementById(boardId, element.id);
           // Sender ko bata do — apna local state server ke saath sync kare
           socket.emit("element:rejected", {
             elementId: element.id,
             reason: "stale_update",
+            lastKnownState,
           });
           return;
         }
@@ -186,10 +202,16 @@ export const registerCollaborationHandlers = (io) => {
     socket.on("element:lock", ({ boardId, elementId }) => {
       if (!boardId || !elementId) return;
 
+      const lockData = {
+        userId: user._id.toString(),
+        socketId: socket.id,
+        fullName: user.fullName,
+      };
+
       const locked = collabService.lockElement(
         boardId,
         elementId,
-        user._id.toString()
+        lockData
       );
 
       if (!locked) {
@@ -204,10 +226,7 @@ export const registerCollaborationHandlers = (io) => {
       // Baaki sabko batao — yeh element ab locked hai
       socket.to(`board:${boardId}`).emit("element:locked", {
         elementId,
-        lockedBy: {
-          userId: user._id.toString(),
-          fullName: user.fullName,
-        },
+        lockedBy: lockData,
       });
     });
 
@@ -219,16 +238,16 @@ export const registerCollaborationHandlers = (io) => {
       collabService.unlockElement(
         boardId,
         elementId,
-        user._id.toString()
+        user._id.toString(),
+        socket.id
       );
 
       socket.to(`board:${boardId}`).emit("element:unlocked", { elementId });
     });
 
-    // ─── disconnect ───────────────────────────────────────────────────────────
-
-    socket.on("disconnect", (reason) => {
-      logger.info("Collaboration socket disconnected", {
+    // ─── disconnecting ────────────────────────────────────────────────────────
+    socket.on("disconnecting", (reason) => {
+      logger.info("Collaboration socket disconnecting", {
         userId: user._id,
         reason,
       });
@@ -255,20 +274,33 @@ const handleLeave = (socket, io, boardId, user) => {
 
   collabService.removeFromRoom(boardId, socket.id);
 
-  // User ke saare element locks release karo
-  // Warna board elements permanently locked reh sakte hain
-  collabService.releaseAllLocks(boardId, user._id.toString());
+  // Is socket ke element locks release karo
+  const releasedCount = collabService.releaseAllLocks(
+    boardId,
+    user._id.toString(),
+    socket.id
+  );
 
-  // Baaki sab ko batao — is user ke locks release hue
-  io.to(roomName).emit("elements:unlocked:all", {
-    userId: user._id.toString(),
-  });
+  // Tabhi broadcast karo jab locks release hue ho
+  if (releasedCount > 0) {
+    io.to(roomName).emit("elements:unlocked:all", {
+      userId: user._id.toString(),
+    });
+  }
 
   socket.leave(roomName);
 
-  io.to(roomName).emit("user:left", {
-    userId: user._id.toString(),
-    fullName: user.fullName,
-    users: collabService.getRoomUsers(boardId),
-  });
+  // Check karo agar user ka abhi bhi koi aur socket room mein active hai
+  const remainingUsers = collabService.getRoomUsers(boardId);
+  const stillPresent = remainingUsers.some(
+    (u) => String(u.userId || u._id) === String(user._id)
+  );
+
+  if (!stillPresent) {
+    io.to(roomName).emit("user:left", {
+      userId: user._id.toString(),
+      fullName: user.fullName,
+      users: remainingUsers,
+    });
+  }
 };
