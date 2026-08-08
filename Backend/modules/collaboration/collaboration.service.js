@@ -22,6 +22,10 @@ const rooms = new Map();
 // Har element event pe DB hit hoti thi, ab 5 min cache hai
 const permissionCache = new Map();
 
+// Board permission epoch tracker — race conditions prevent karne ke liye
+const boardEpochs = new Map();
+const getBoardEpoch = (boardId) => boardEpochs.get(boardId) || 0;
+
 // LWW version map — "boardId:elementId" → timestamp (ms)
 // Stale/purane updates ko reject karne ke liye
 const elementVersionMap = new Map();
@@ -108,6 +112,8 @@ export const canUserEdit = async (boardId, userId) => {
     return cached.canEdit;
   }
 
+  const startEpoch = getBoardEpoch(boardId);
+
   try {
     const board = await boardService.getBoardById(boardId, userId);
     const uIdStr = toIdStr(userId);
@@ -124,11 +130,13 @@ export const canUserEdit = async (boardId, userId) => {
       canEdit = member?.role === "editor" || member?.role === "owner";
     }
 
-    // 5 minute ke liye cache karo
-    permissionCache.set(cacheKey, {
-      canEdit,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    });
+    // Sirf tab cache karo jab epoch change NAHI hua ho async lookup ke dauran
+    if (startEpoch === getBoardEpoch(boardId)) {
+      permissionCache.set(cacheKey, {
+        canEdit,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+    }
 
     return canEdit;
   } catch {
@@ -136,9 +144,9 @@ export const canUserEdit = async (boardId, userId) => {
   }
 };
 
-// Board ke members change hone pe cache clear karo
-// Apne board update route mein yeh call karna
+// Board ke members change hone pe epoch advance karo aur cache clear karo
 export const invalidatePermissionCache = (boardId) => {
+  boardEpochs.set(boardId, getBoardEpoch(boardId) + 1);
   for (const key of permissionCache.keys()) {
     if (key.startsWith(`${boardId}:`)) permissionCache.delete(key);
   }
