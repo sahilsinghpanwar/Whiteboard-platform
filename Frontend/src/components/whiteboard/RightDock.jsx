@@ -13,6 +13,7 @@ export default function RightDock({
   onBoardUpdate,
   onChat,
   emitChat,
+  onElementUpsert,
   isOpen = true,
   onClose,
 }) {
@@ -55,7 +56,7 @@ export default function RightDock({
         </TabsContent>
 
         <TabsContent value="ai" className="flex-1 mt-2 overflow-hidden">
-          <AIPanel boardId={boardId} selectedElements={selectedElements} />
+          <AIPanel boardId={boardId} selectedElements={selectedElements} onElementUpsert={onElementUpsert} />
         </TabsContent>
 
         <TabsContent value="members" className="flex-1 mt-2 overflow-hidden">
