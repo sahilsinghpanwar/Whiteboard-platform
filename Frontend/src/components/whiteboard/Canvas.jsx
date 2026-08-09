@@ -465,7 +465,6 @@ export default function Canvas({
     // Common props for standard shapes
     const commonProps = {
       id: el.id,
-      key: el.id,
       x: el.x,
       y: el.y,
       rotation: el.rotation || 0,

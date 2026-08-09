@@ -16,7 +16,14 @@ import {
   parseImproveResponse,
 } from './parser.js';
 
-// --- GROQ ENGINE: Ultra-Fast Text Completion & Deep Reasoning ---
+// ─────────────────────────────────────────────────────────────────────────────
+// GROQ ENGINE (Ultra-Fast Text Completion & Deep Reasoning with Model Fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Execute text completion using Groq LLaMA/Mixtral models.
+ * Automatically falls back to Gemini if Groq client is unavailable or rate-limited.
+ */
 const callGroq = async (prompt) => {
   const groq = getGroqClient();
   if (!groq) {
@@ -48,9 +55,15 @@ const callGroq = async (prompt) => {
   return callGemini(prompt, 'flash');
 };
 
-// --- GEMINI ENGINE: Multimodal Image-In, Text/Code-Out & Deep Gemini Responses ---
+// ─────────────────────────────────────────────────────────────────────────────
+// GEMINI ENGINE (Multimodal & Text Completion with Auto Fallback to Groq)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Execute text generation via Google Gemini API with fallback tiers.
+ * Automatically fails over to Groq if Gemini key is unauthorized or rate-limited.
+ */
 const callGemini = async (prompt, tier = 'flash') => {
-  // Use valid Gemini model names registered in Google Generative AI API
   const modelNames = tier === 'pro'
     ? ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash']
     : ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
@@ -90,6 +103,10 @@ const callGemini = async (prompt, tier = 'flash') => {
   return callGroq(prompt);
 };
 
+/**
+ * Process multimodal image inputs (canvas screenshots / hand-drawn sketches)
+ * using Gemini Vision models.
+ */
 const callGeminiVision = async (prompt, imageBase64) => {
   const cleanImageBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
   const mimeTypeMatch = imageBase64.match(/^data:(image\/[a-zA-Z]+);base64,/);
@@ -117,22 +134,30 @@ const callGeminiVision = async (prompt, imageBase64) => {
 
       if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
         throw ApiError.badRequest(
-          'Gemini API key is missing or invalid. Please set a valid GEMINI_API_KEY from Google AI Studio (https://aistudio.google.com/app/apikey) in Backend/.env'
+          'Gemini API key is missing or invalid. Please set a valid GEMINI_API_KEY from Google AI Studio in Backend/.env'
         );
       }
     }
   }
 
-  throw ApiError.internal(`Gemini Vision error: ${lastError?.message || 'Failed to process sketch image. Ensure GEMINI_API_KEY in .env is valid.'}`);
+  throw ApiError.internal(`Gemini Vision error: ${lastError?.message || 'Failed to process sketch image.'}`);
 };
 
+/**
+ * Helper to fetch canvas state from database for a given board ID
+ */
 const getBoardCanvas = async (boardId, userId) => {
   const board = await boardService.getBoardById(boardId, userId);
   return board.canvas;
 };
 
-// --- API SERVICES ---
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC AI SERVICES
+// ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Process AI Agent requests to generate/manipulate whiteboard elements
+ */
 export const processAgentRequest = async (
   boardId,
   userId,
@@ -165,6 +190,9 @@ export const processAgentRequest = async (
   return parseAgentResponse(rawText);
 };
 
+/**
+ * Process Vision AI request for sketch-to-code / UI analysis
+ */
 export const processVisionRequest = async (boardId, userId, prompt, imageBase64, selectedElementIds = []) => {
   if (!prompt?.trim()) throw ApiError.badRequest('Prompt instruction is required');
   if (!imageBase64?.trim()) throw ApiError.badRequest('Canvas screenshot / sketch image is required');
@@ -195,6 +223,9 @@ Return your response with detailed explanations and HTML/CSS code enclosed in \`
   };
 };
 
+/**
+ * Generate brainstorm ideas formatted as sticky notes
+ */
 export const brainstorm = async (boardId, userId, topic) => {
   if (!topic?.trim()) throw ApiError.badRequest('A topic is required for brainstorming');
   const canvas = await getBoardCanvas(boardId, userId);
@@ -204,6 +235,9 @@ export const brainstorm = async (boardId, userId, topic) => {
   return parseBrainstormResponse(raw);
 };
 
+/**
+ * Generate structured flowcharts, mindmaps, or sequence diagrams
+ */
 export const generateDiagram = async (boardId, userId, description) => {
   if (!description?.trim()) throw ApiError.badRequest('A description is required to generate a diagram');
   const canvas = await getBoardCanvas(boardId, userId);
@@ -213,6 +247,9 @@ export const generateDiagram = async (boardId, userId, description) => {
   return parseDiagramResponse(raw);
 };
 
+/**
+ * Generate overview and key insights summary of board content
+ */
 export const summariseBoard = async (boardId, userId) => {
   const canvas = await getBoardCanvas(boardId, userId);
   if (!canvas?.elements?.length) {
@@ -224,13 +261,16 @@ export const summariseBoard = async (boardId, userId) => {
   return parseSummaryResponse(raw);
 };
 
+/**
+ * Improve text formatting, clarity, or style for selected elements
+ */
 export const improveText = async (boardId, userId, selectedElements, instruction) => {
   if (!selectedElements?.length) {
     throw ApiError.badRequest('Select at least one text element to improve');
   }
   await getBoardCanvas(boardId, userId);
   const textContent = selectedElements
-    .map((el) => el.data?.content ?? el.content ?? '')
+    .map((el) => el.data?.text ?? el.data?.content ?? el.text ?? el.content ?? (typeof el.data === 'string' ? el.data : ''))
     .filter(Boolean)
     .join('\n');
 

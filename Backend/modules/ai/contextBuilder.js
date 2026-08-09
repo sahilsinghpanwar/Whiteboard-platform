@@ -1,3 +1,13 @@
+/**
+ * Context Builder Utilities
+ * Transforms raw whiteboard canvas state into structured text manifests for AI prompts.
+ */
+
+/**
+ * Build a detailed text manifest of the entire whiteboard canvas.
+ * Includes element count, coordinates, dimensions, text content, colors,
+ * connector relationships, and highlights currently selected items.
+ */
 export const buildBoardContext = (canvas, selectedElementIds = []) => {
   if (!canvas?.elements?.length) {
     return 'BOARD STATE: The canvas is currently empty (0 elements). Center coordinates around x: 400, y: 300.';
@@ -44,6 +54,9 @@ export const buildBoardContext = (canvas, selectedElementIds = []) => {
   return lines.join('\n');
 };
 
+/**
+ * Build a focused context manifest containing ONLY the user-selected canvas elements.
+ */
 export const buildSelectionContext = (canvas, selectedElementIds = []) => {
   if (!canvas?.elements?.length || !selectedElementIds?.length) return '';
   const selectedSet = new Set(selectedElementIds.map(String));
@@ -54,6 +67,10 @@ export const buildSelectionContext = (canvas, selectedElementIds = []) => {
   return buildBoardContext({ elements: selectedElements }, selectedElementIds);
 };
 
+/**
+ * Format recent conversation history (last 6 messages) into a clean chat log
+ * for multi-turn AI agent prompts.
+ */
 export const formatConversationHistory = (history = []) => {
   if (!history || history.length === 0) return '';
   return history

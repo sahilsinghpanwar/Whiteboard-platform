@@ -1,6 +1,11 @@
 import * as aiService from './ai.service.js';
 import { ApiResponse } from '../../core/utils/ApiResponse.js';
 
+
+/**
+ * Handle AI Agent commands (Natural language board manipulation)
+ * POST /api/v1/boards/:boardId/ai/agent
+ */
 export const processAgentRequest = async (req, res) => {
   const result = await aiService.processAgentRequest(
     req.params.boardId,
@@ -14,6 +19,11 @@ export const processAgentRequest = async (req, res) => {
   );
 };
 
+
+/**
+ * Handle Vision AI requests (Convert hand-drawn sketch images into canvas shapes)
+ * POST /api/v1/boards/:boardId/ai/vision
+ */
 export const processVisionRequest = async (req, res) => {
   const result = await aiService.processVisionRequest(
     req.params.boardId,
@@ -27,6 +37,11 @@ export const processVisionRequest = async (req, res) => {
   );
 };
 
+/**
+ * Generate brainstorm ideas/sticky notes for a specific topic
+ * POST /api/v1/boards/:boardId/ai/brainstorm
+ */
+
 export const brainstorm = async (req, res) => {
   const ideas = await aiService.brainstorm(
     req.params.boardId,
@@ -38,6 +53,11 @@ export const brainstorm = async (req, res) => {
   );
 };
 
+
+/**
+ * Generate structured diagrams (Flowcharts, Mindmaps, Sequence Diagrams)
+ * POST /api/v1/boards/:boardId/ai/diagram
+ */
 export const generateDiagram = async (req, res) => {
   const diagram = await aiService.generateDiagram(
     req.params.boardId,
@@ -49,6 +69,11 @@ export const generateDiagram = async (req, res) => {
   );
 };
 
+/**
+ * Generate overview & summary of current whiteboard content
+ * GET/POST /api/v1/boards/:boardId/ai/summary
+ */
+
 export const summariseBoard = async (req, res) => {
   const summary = await aiService.summariseBoard(
     req.params.boardId,
@@ -59,6 +84,10 @@ export const summariseBoard = async (req, res) => {
   );
 };
 
+/**
+ * Improve, rewrite, or polish text inside selected whiteboard elements
+ * POST /api/v1/boards/:boardId/ai/improve
+ */
 export const improveText = async (req, res) => {
   const result = await aiService.improveText(
     req.params.boardId,
