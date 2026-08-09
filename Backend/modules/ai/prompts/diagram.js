@@ -153,11 +153,17 @@ existing node coordinates listed above. Prefer empty regions of canvas.`;
 const getDiagramTypeHint = (description) => {
   const d = description.toLowerCase();
 
+  // 1. Explicit diagram type indicators (prioritized)
+  if (d.includes('sequence')) return 'sequence';
+  if (d.includes('mindmap') || d.includes('mind map')) return 'mindmap';
+  if (d.includes('flowchart') || d.includes('flow chart')) return 'flowchart';
+
+  // 2. Generic keywords
   if (d.match(/flow|process|step|pipeline|auth|login|signup|checkout|order|deploy/))
     return 'flowchart';
   if (d.match(/mind|idea|brain|concept|topic|category|feature|plan/))
     return 'mindmap';
-  if (d.match(/sequence|api|request|response|service|actor|interact|message|call/))
+  if (d.match(/api|request|response|service|actor|interact|message|call/))
     return 'sequence';
 
   return null; // AI decide kare
@@ -267,15 +273,20 @@ export const validateDiagramResponse = (parsed) => {
 
   if (errors.length > 0) return { valid: false, errors };
 
-  // Node count
-  if (parsed.nodes.length < 2) errors.push('Too few nodes (minimum 2)');
-  if (parsed.nodes.length > 12) errors.push('Too many nodes (maximum 12)');
+  // Node count (4 to 10 nodes required)
+  if (parsed.nodes.length < 4) errors.push('Too few nodes (minimum 4)');
+  if (parsed.nodes.length > 10) errors.push('Too many nodes (maximum 10)');
 
   // Node field validation
   const nodeIds = new Set();
   parsed.nodes.forEach((node, i) => {
-    if (!node.id) errors.push(`Node[${i}]: missing id`);
-    else nodeIds.add(node.id);
+    if (!node.id) {
+      errors.push(`Node[${i}]: missing id`);
+    } else if (nodeIds.has(node.id)) {
+      errors.push(`Node[${i}]: duplicate id "${node.id}"`);
+    } else {
+      nodeIds.add(node.id);
+    }
 
     if (!node.label) errors.push(`Node[${i}]: missing label`);
     if (typeof node.x !== 'number') errors.push(`Node[${i}]: x must be number`);
@@ -316,32 +327,45 @@ export const parseDiagramResponse = (rawResponse) => {
     // Step 2: parse
     const parsed = JSON.parse(cleaned);
 
-    // Step 3: validate
-    const { valid, errors } = validateDiagramResponse(parsed);
-    if (!valid) {
-      console.warn('[DiagramParser] Validation warnings:', errors);
-      // Soft fail — return parsed with warnings, let renderer handle gracefully
+    if (!parsed || typeof parsed !== 'object') {
+      return { success: false, diagram: null, errors: ['Response is not a valid JSON object'] };
     }
 
-    // Step 4: defaults inject karo for missing optional fields
-    parsed.nodes = parsed.nodes.map((node) => ({
-      width: 160,
-      height: 50,
-      fontSize: 14,
-      textColor: '#FFFFFF',
-      nodeRole: 'process',
-      ...node, // node ke values override karenge defaults ko
-    }));
+    // Step 3: defaults inject karo for missing optional fields
+    if (Array.isArray(parsed.nodes)) {
+      parsed.nodes = parsed.nodes.map((node) => ({
+        width: 160,
+        height: 50,
+        fontSize: 14,
+        textColor: '#FFFFFF',
+        nodeRole: 'process',
+        ...node, // node ke values override karenge defaults ko
+      }));
+    }
 
-    parsed.edges = parsed.edges.map((edge) => ({
-      label: '',
-      stroke: '#64748B',
-      labelColor: '#475569',
-      style: 'solid',
-      ...edge,
-    }));
+    if (Array.isArray(parsed.edges)) {
+      parsed.edges = parsed.edges.map((edge) => ({
+        label: '',
+        stroke: '#64748B',
+        labelColor: '#475569',
+        style: 'solid',
+        ...edge,
+      }));
+    }
 
-    return { success: true, diagram: parsed, errors };
+    // Step 4: validate
+    const validation = validateDiagramResponse(parsed);
+
+    if (!validation.valid) {
+      console.warn('[DiagramParser] Validation failed:', validation.errors);
+      return {
+        success: false,
+        diagram: null,
+        errors: validation.errors,
+      };
+    }
+
+    return { success: true, diagram: parsed, errors: [] };
 
   } catch (err) {
     return {
