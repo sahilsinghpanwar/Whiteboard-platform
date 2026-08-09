@@ -230,7 +230,7 @@ export const improveText = async (boardId, userId, selectedElements, instruction
   }
   await getBoardCanvas(boardId, userId);
   const textContent = selectedElements
-    .map((el) => el.data?.content ?? el.content ?? '')
+    .map((el) => el.data?.text ?? el.data?.content ?? el.text ?? el.content ?? (typeof el.data === 'string' ? el.data : ''))
     .filter(Boolean)
     .join('\n');
 
